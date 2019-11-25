@@ -36,7 +36,7 @@ func main()  {
 }
 
 func test(){
-	for i:= 0;i<100000;i++{
+	for i:= 0;i<10000;i++{
 		fmt.Println("iiiii::",i)
 		call.CallSync()
 	}

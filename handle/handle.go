@@ -30,7 +30,7 @@ func (m *MsgHandle)Call(ctx context.Context, info *pb.NetReqInfo) (*pb.CallRspIn
 	fmt.Println("netPack.M_MsgBody.MLServerSequence:",netPack.M_MsgBody.MLServerSequence)
 	fmt.Println("netPack.M_MsgBody.MSSendCount:",netPack.M_MsgBody.MSSendCount)
 	fmt.Println("netPack.M_MsgBody.MLBack:",netPack.M_MsgBody.MLBack)
-
+	out.M_Net_Rsp = []byte("call info to return")
 	return &out,nil
 }
 

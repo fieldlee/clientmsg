@@ -47,14 +47,6 @@ func GetBody()[]byte{
 	}
 	defer file.Close()
 
-	//stat, err := file.Stat()
-	//if err != nil {
-	//	return nil
-	//}
-
-	//var size = stat.Size()
-	//fmt.Println("file size=", size)
-
 	buf := bufio.NewReader(file)
 	bodyByte := make([]byte,110)
 	_,err = buf.Read(bodyByte)
