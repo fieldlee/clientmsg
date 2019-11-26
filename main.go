@@ -29,15 +29,26 @@ func main()  {
 	rpcServer := grpc.NewServer()
 	pb.RegisterClientServiceServer(rpcServer,&handle.MsgHandle{})
 	reflection.Register(rpcServer)
-	go test()
+	go testAsync()
 	if err = rpcServer.Serve(listener); err != nil {
 		log.Fatalln("faile serve at: " + Host + ":" + Port)
 	}
 }
 
-func test(){
+func testSync(){
+	body := call.GetBody()
+
 	for i:= 0;i<10000;i++{
 		fmt.Println("iiiii::",i)
-		call.CallSync()
+		call.CallSync(body)
+	}
+}
+
+func testAsync(){
+	body := call.GetBody()
+
+	for i:= 0;i<10000;i++{
+		fmt.Println("iiiii::",i)
+		call.CallAsync(body)
 	}
 }

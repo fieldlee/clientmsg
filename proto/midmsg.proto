@@ -4,18 +4,23 @@ syntax = "proto3";
 package proto;
 
 service MidService {
-    rpc Sync(NetReqInfo)  returns (NetRspInfo) {};
-    rpc Async(NetReqInfo) returns (NetRspInfo) {};
+    rpc Sync(NetReqInfo)    returns (NetRspInfo) {};
+    rpc Async(NetReqInfo)   returns (NetRspInfo) {};
+    rpc Publish(NetReqInfo) returns (NetRspInfo) {};
+    rpc ReloadConfig(Rload) returns (Rload) {};
 }
 
 service ClientService{
-    rpc Call(NetReqInfo)   returns (CallRspInfo) {};
+    rpc Call(NetReqInfo)            returns (CallRspInfo) {};
     rpc AsyncCall(SingleResultInfo) returns (CallRspInfo) {};
 }
+
+message Rload{}
 
 message NetReqInfo
 {
     bytes   m_Body   = 1;     ///请求rpc bytes
+    string  service  = 2;     ///请求的注册服务的名称，只有publish用的到
 }
 
 message CallRspInfo
@@ -46,11 +51,11 @@ message SingleResultInfo  {
     int32   MsgType     = 3;      // message 类型
     int32   MsgAckType  = 4;      // ack message 类型
     uint32  SyncType    = 5;	 ///// 0 同步  1 异步
-    bool    IsTimeOut   = 6;
+ 	bool    IsTimeOut   = 6;
     bool    IsDisCard   = 7;
     bool    IsResend    = 8;
-    bytes   Errinfo     = 9;
-    bytes   Result      = 10;
+	bytes   Errinfo     = 9;
+ 	bytes   Result      = 10;
 }
 
 message ClientRsqInfo {
@@ -61,12 +66,12 @@ message ClientRsqInfo {
 
 message GJ_Net_Pack
 {
-    map<uint32, Net_Pack> 					m_Net_Pack = 1;								//可缓存多个客户端请求
+    map<uint32, Net_Pack> 		m_Net_Pack = 1;								//可缓存多个客户端请求
 }
 
 message Net_Pack
 {
-    bytes							m_Msg = 1;							//每个服务类型定义的protobuf结构，打包成流缓存在该字段
+    bytes						m_Msg = 1;							//每个服务类型定义的protobuf结构，打包成流缓存在该字段
     message Min_Net_MsgBody
     {
         uint64					m_lAsktype 			    = 1;					//请求的服务类型
@@ -81,7 +86,7 @@ message Net_Pack
         uint64					m_lBack				    = 10;					//备份数据，默认为0
         int32					m_iDiscard			    = 11;					//消息是否可以丢弃 0 表示可以丢弃 1表示不可以
     }
-    Min_Net_MsgBody					m_MsgBody = 2;
+    Min_Net_MsgBody				m_MsgBody = 2;
 }
 
 /// go get -u github.com/golang/protobuf/tree/master/protoc-gen-go
