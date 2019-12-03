@@ -4,10 +4,13 @@ syntax = "proto3";
 package proto;
 
 service MidService {
-    rpc Sync(NetReqInfo)    returns (NetRspInfo) {};
-    rpc Async(NetReqInfo)   returns (NetRspInfo) {};
-    rpc Publish(NetReqInfo) returns (NetRspInfo) {};
-    rpc ReloadConfig(Rload) returns (Rload) {};
+    rpc Sync(NetReqInfo)            returns (NetRspInfo) {};
+    rpc Async(NetReqInfo)           returns (NetRspInfo) {};
+    rpc Broadcast(NetReqInfo)       returns (NetRspInfo) {};
+    rpc ReloadConfig(Rload)         returns (Rload) {};
+    rpc Register(RegisterInfo)      returns (RegisterReturnInfo){};
+    rpc Publish(PublishInfo)        returns (PublishReturnInfo){};
+    rpc Subscribe(SubscribeInfo)    returns (SubscribeReturnInfo){};
 }
 
 service ClientService{
@@ -50,18 +53,12 @@ message SingleResultInfo  {
     uint64  SendTimeApp = 2;      // 客户端生成的时间序
     int32   MsgType     = 3;      // message 类型
     int32   MsgAckType  = 4;      // ack message 类型
-    uint32  SyncType    = 5;	 ///// 0 同步  1 异步
+    uint32  SyncType    = 5;	  ///// 0 同步  1 异步
  	bool    IsTimeOut   = 6;
     bool    IsDisCard   = 7;
     bool    IsResend    = 8;
 	bytes   Errinfo     = 9;
  	bytes   Result      = 10;
-}
-
-message ClientRsqInfo {
-    bytes   m_Resp = 1;
-    uint32  m_Type = 2;
-    string  m_RqId = 3;
 }
 
 message GJ_Net_Pack
@@ -89,5 +86,36 @@ message Net_Pack
     Min_Net_MsgBody				m_MsgBody = 2;
 }
 
+message RegisterInfo{
+    string  ip          = 1;    // 注册地址
+    string  port        = 2;    // 注册端口
+    string  sequence    = 3;    // 功能号
+}
+
+message RegisterReturnInfo{
+    bool    success          = 1;    // 注册结果
+    bytes   msg              = 2;    // 结果说明
+}
+
+message SubscribeInfo{
+    string  ip          = 1;    // 订阅地址
+    string  port        = 2;    // 订阅端口
+    string  service     = 3;    // 订阅服务号
+}
+
+message SubscribeReturnInfo{
+    bool    success          = 1;    // 订阅结果
+    bytes   msg              = 2;    // 结果说明
+}
+
+message PublishInfo{
+    string  service     = 1;    // 广播服务名称
+}
+
+message PublishReturnInfo{
+    bool    success          = 1;    // 广播结果
+    bytes   msg              = 2;    // 结果说明
+}
+
 /// go get -u github.com/golang/protobuf/tree/master/protoc-gen-go
-/// protoc --go_out=plugins=grpc:. proto/wallet.proto
+/// protoc --go_out=plugins=grpc:. proto/midmsg.proto

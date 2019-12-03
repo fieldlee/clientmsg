@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc/reflection"
 	"log"
 	"net"
+	"time"
 )
 
 var (
@@ -29,7 +30,7 @@ func main()  {
 	rpcServer := grpc.NewServer()
 	pb.RegisterClientServiceServer(rpcServer,&handle.MsgHandle{})
 	reflection.Register(rpcServer)
-	go testAsync()
+	go testSync()
 	if err = rpcServer.Serve(listener); err != nil {
 		log.Fatalln("faile serve at: " + Host + ":" + Port)
 	}
@@ -37,18 +38,13 @@ func main()  {
 
 func testSync(){
 	body := call.GetBody()
-
-	for i:= 0;i<10000;i++{
-		fmt.Println("iiiii::",i)
-		call.CallSync(body)
-	}
+	time.Sleep(time.Second)
+	call.CallSync(body,10)
 }
 
 func testAsync(){
 	body := call.GetBody()
 
-	for i:= 0;i<10000;i++{
-		fmt.Println("iiiii::",i)
-		call.CallAsync(body)
-	}
+	call.CallAsync(body,1000000)
+
 }
