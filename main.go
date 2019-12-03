@@ -20,7 +20,6 @@ var (
 )
 
 func main()  {
-	fmt.Println(Port)
 	listener, err := net.Listen("tcp", Host+":"+Port)
 	if err != nil {
 		log.Fatalln("faile listen at: " + Host + ":" + Port)
@@ -30,21 +29,28 @@ func main()  {
 	rpcServer := grpc.NewServer()
 	pb.RegisterClientServiceServer(rpcServer,&handle.MsgHandle{})
 	reflection.Register(rpcServer)
-	go testSync()
 	if err = rpcServer.Serve(listener); err != nil {
-		log.Fatalln("faile serve at: " + Host + ":" + Port)
+		log.Fatalln("failed serve at: " + Host + ":" + Port)
 	}
 }
 
 func testSync(){
 	body := call.GetBody()
 	time.Sleep(time.Second)
-	call.CallSync(body,10)
+	call.CallSync(body)
 }
 
+func testRegister(){
+	call.Register("100002","192.168.1.31","8989")
+}
+func testPublish(){
+	//call.Publish("test.service3")
+}
+func testSubscribe(){
+	call.Publish("test.service3")
+	call.Subscribe("test.service3","192.168.1.31","8989")
+}
 func testAsync(){
 	body := call.GetBody()
-
-	call.CallAsync(body,1000000)
-
+	call.CallAsync(body)
 }
