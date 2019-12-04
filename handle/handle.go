@@ -14,28 +14,30 @@ type HandleMidMsg struct {
 
 var HandleObj = HandleMidMsg{}
 
-func (m *MsgHandle)Call(ctx context.Context, info *pb.NetReqInfo) (*pb.CallRspInfo, error) {
+func (m *MsgHandle)Call(ctx context.Context, info *pb.CallReqInfo) (*pb.CallRspInfo, error) {
 	out := pb.CallRspInfo{}
 	if HandleObj.Handle == nil {
 		out.M_Net_Rsp = []byte("The Handle Call function not instance")
 	}else{
-		reT,err := HandleObj.Handle(info.M_Body)
+		//info.Service
+		//info.M_Body.M_MsgBody.MLBack
+		//info.M_Body.M_MsgBody.MSSendCount
+		//info.M_Body.M_MsgBody.MLServerSequence
+		//info.M_Body.M_MsgBody.MLExpireTime
+		//info.M_Body.M_MsgBody.MLAskSequence
+		//info.M_Body.M_MsgBody.MISendTimeApp
+		//info.M_Body.M_MsgBody.MCMsgType
+		//info.M_Body.M_MsgBody.MCMsgAckType
+		//info.M_Body.M_MsgBody.MIDiscard
+		//info.M_Body.M_MsgBody.MLAsktype
+		//info.M_Body.M_MsgBody.MLResult
+
+		reT,err := HandleObj.Handle(info.M_Body.M_Msg)
 		if err != nil {
 			out.M_Net_Rsp = []byte(err.Error())
 		}
 		out.M_Net_Rsp = reT
 	}
-
-	//fmt.Println("netPack.M_MsgBody.MLAsktype:",netPack.M_MsgBody.MLAsktype)
-	//fmt.Println("netPack.M_MsgBody.MIDiscard:",netPack.M_MsgBody.MIDiscard)
-	//fmt.Println("netPack.M_MsgBody.MCMsgAckType:",netPack.M_MsgBody.MCMsgAckType)
-	//fmt.Println("netPack.M_MsgBody.MCMsgType:",netPack.M_MsgBody.MCMsgType)
-	//fmt.Println("netPack.M_MsgBody.MISendTimeApp:",netPack.M_MsgBody.MISendTimeApp)
-	//fmt.Println("netPack.M_MsgBody.MLAskSequence:",netPack.M_MsgBody.MLAskSequence)
-	//fmt.Println("netPack.M_MsgBody.MLExpireTime:",netPack.M_MsgBody.MLExpireTime)
-	//fmt.Println("netPack.M_MsgBody.MLServerSequence:",netPack.M_MsgBody.MLServerSequence)
-	//fmt.Println("netPack.M_MsgBody.MSSendCount:",netPack.M_MsgBody.MSSendCount)
-	//fmt.Println("netPack.M_MsgBody.MLBack:",netPack.M_MsgBody.MLBack)
 	return &out,nil
 }
 
