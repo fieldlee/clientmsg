@@ -31,11 +31,15 @@ func InitConfig () *Config {
 }
 
 func init()  {
-	Con = InitConfig()
-	Address = GetAddress()
-	Port = GetPort()
-	ServerAddr = GetSerAddress()
-	ServerPort = GetSerPort()
+	//Con = InitConfig()
+	//Address = GetAddress()
+	//Port = GetPort()
+	//ServerAddr = GetSerAddress()
+	//ServerPort = GetSerPort()
+	Address = "0.0.0.0"
+	Port = 8989
+	ServerAddr = "127.0.0.1"
+	ServerPort = 8080
 }
 
 func GetAddress()string{

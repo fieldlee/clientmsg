@@ -1,6 +1,6 @@
 
 package main
-
+import "C"
 import (
 	"clientmsg/call"
 	"clientmsg/handle"

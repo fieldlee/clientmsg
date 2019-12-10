@@ -19,6 +19,7 @@ func (m *MsgHandle)Call(ctx context.Context, info *pb.CallReqInfo) (*pb.CallRspI
 	if HandleObj.Handle == nil {
 		out.M_Net_Rsp = []byte("The Handle Call function not instance")
 	}else{
+
 		//info.Service
 		//info.M_Body.M_MsgBody.MLBack
 		//info.M_Body.M_MsgBody.MSSendCount
