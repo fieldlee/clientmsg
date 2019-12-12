@@ -22,16 +22,6 @@ var (
 
 type MsgHandle struct {}
 
-//type HandleMidMsg struct {
-//	Handle func([]byte)([]byte,error)
-//	AsyncHandle func(*pb.SingleResultInfo)([]byte,error)
-//}
-//
-//var HandleObj = HandleMidMsg{}
-
-/*
-extern bytes goCallbackHandler(bytes);
-*/
 
 func (m *MsgHandle)Call(ctx context.Context, info *pb.CallReqInfo) (*pb.CallRspInfo, error) {
 	out := pb.CallRspInfo{}
