@@ -29,6 +29,10 @@ type MsgHandle struct {}
 //
 //var HandleObj = HandleMidMsg{}
 
+/*
+extern bytes goCallbackHandler(bytes);
+*/
+
 func (m *MsgHandle)Call(ctx context.Context, info *pb.CallReqInfo) (*pb.CallRspInfo, error) {
 	out := pb.CallRspInfo{}
 
