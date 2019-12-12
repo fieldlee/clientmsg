@@ -94,17 +94,26 @@ func Run()  {
 
 //export Register
 func Register(seq,ip string){
-	call.Register(seq,ip,"8989")
+	err := call.Register(seq,ip,"8989")
+	if err != nil {
+		return
+	}
 }
 
 //export Publish
 func Publish(service string){
-	call.Publish(service)
+	err := call.Publish(service)
+	if err != nil {
+		return
+	}
 }
 
 //export Subscribe
 func Subscribe(service,ip string){
-	call.Subscribe(service,ip,"8989")
+	err := call.Subscribe(service,ip,"8989")
+	if err != nil {
+		return
+	}
 }
 
 //export Sync
