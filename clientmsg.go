@@ -1,6 +1,8 @@
 
-package main
+package clientmsg
+
 import "C"
+
 import (
 	"clientmsg/call"
 	"clientmsg/handle"
@@ -11,7 +13,6 @@ import (
 	"google.golang.org/grpc/reflection"
 	"log"
 	"net"
-	"time"
 )
 
 var (
@@ -19,7 +20,8 @@ var (
 	Port = fmt.Sprintf("%d",utils.Port)
 )
 
-func main()  {
+//export Run
+func Run()  {
 	listener, err := net.Listen("tcp", Host+":"+Port)
 	if err != nil {
 		log.Fatalln("faile listen at: " + Host + ":" + Port)
@@ -34,23 +36,34 @@ func main()  {
 	}
 }
 
-func testSync(){
-	body := call.GetBody()
-	time.Sleep(time.Second)
-	call.CallSync(body)
+//export Register
+func Register(seq,ip string){
+	call.Register(seq,ip,"8989")
 }
 
-func testRegister(){
-	call.Register("100002","192.168.1.31","8989")
+//export Publish
+func Publish(service string){
+	call.Publish(service)
 }
-func testPublish(){
-	//call.Publish("test.service3")
+
+//export Subscribe
+func Subscribe(service,ip string){
+	call.Subscribe(service,ip,"8989")
 }
-func testSubscribe(){
-	call.Publish("test.service3")
-	call.Subscribe("test.service3","192.168.1.31","8989")
+
+//export Sync
+func Sync(body []byte){
+	syncResult,err := call.CallSync(body)
+	if err != nil {
+
+	}
+	//syncResult.
 }
-func testAsync(){
-	body := call.GetBody()
-	call.CallAsync(body)
+
+//export Async
+func Async(body []byte){
+	syncResult,err := call.CallAsync(body)
+	if err != nil {
+
+	}
 }
