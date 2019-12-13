@@ -11,7 +11,7 @@ import (
 	"os"
 )
 
-func CallSync(mbody []byte)(map[uint32]*pb.SendResultInfo,error){
+func CallSync(mbody []byte)(*pb.NetRspInfo,error){
 	caddr := fmt.Sprintf("%v:%v",utils.ServerAddr,utils.ServerPort)
 	conn, err := grpc.Dial(caddr, grpc.WithInsecure())
 	if err != nil {
@@ -23,15 +23,11 @@ func CallSync(mbody []byte)(map[uint32]*pb.SendResultInfo,error){
 	ctx := context.Background()
 
 	rsp, err := c.Sync(ctx,&pb.NetReqInfo{M_Body:mbody,Service:""})
-	//////////////////////异步处理 ， 调用客户端的接口，异步发送
+	//////////////////////异步处理，调用客户端的接口，异步发送
 	if err != nil {
 		return nil,err
 	}
-	if rsp.M_Err != nil {
-		return nil,errors.New(string(rsp.M_Err))
-	}
-
-	return rsp.M_Net_Rsp,nil
+	return rsp,nil
 
 	//for k ,_ := range rsp.M_Net_Rsp{
 	//	response := rsp.M_Net_Rsp[k]
@@ -52,7 +48,7 @@ func CallSync(mbody []byte)(map[uint32]*pb.SendResultInfo,error){
 	//}
 }
 
-func CallAsync(mbody []byte)(map[uint32]*pb.SendResultInfo,error){
+func CallAsync(mbody []byte)(*pb.NetRspInfo,error){
 	caddr := fmt.Sprintf("%v:%v",utils.ServerAddr,utils.ServerPort)
 	conn, err := grpc.Dial(caddr, grpc.WithInsecure())
 	if err != nil {
@@ -68,10 +64,10 @@ func CallAsync(mbody []byte)(map[uint32]*pb.SendResultInfo,error){
 	if err != nil {
 		return nil,err
 	}
-	if rsp.M_Err != nil {
-		return nil,errors.New(string(rsp.M_Err))
-	}
-	return rsp.M_Net_Rsp,nil
+	//if rsp.M_Err != nil {
+	//	return nil,errors.New(string(rsp.M_Err))
+	//}
+	return rsp,nil
 	//for k ,_ := range rsp.M_Net_Rsp{
 	//	response := rsp.M_Net_Rsp[k]
 	//	fmt.Println("response.SendCount:",response.SendCount)
@@ -91,7 +87,7 @@ func CallAsync(mbody []byte)(map[uint32]*pb.SendResultInfo,error){
 	//}
 }
 
-func CallBroadcast(mbody []byte,service string)(map[uint32]*pb.SendResultInfo,error){
+func CallBroadcast(mbody []byte,service string)(*pb.NetRspInfo,error){
 	caddr := fmt.Sprintf("%v:%v",utils.ServerAddr,utils.ServerPort)
 	conn, err := grpc.Dial(caddr, grpc.WithInsecure())
 	if err != nil {
@@ -104,10 +100,10 @@ func CallBroadcast(mbody []byte,service string)(map[uint32]*pb.SendResultInfo,er
 	if err != nil {
 		return nil,err
 	}
-	if rsp.M_Err != nil {
-		return nil,errors.New(string(rsp.M_Err))
-	}
-	return rsp.M_Net_Rsp,nil
+	//if rsp.M_Err != nil {
+	//	return nil,errors.New(string(rsp.M_Err))
+	//}
+	return rsp,nil
 }
 
 func GetBody()[]byte{

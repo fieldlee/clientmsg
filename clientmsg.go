@@ -1,32 +1,59 @@
-
-package clientmsg
-
+package main
+// #include "bridge.h"
 import "C"
-
 import (
 	"clientmsg/call"
 	pb "clientmsg/proto"
 	"clientmsg/utils"
+	"context"
 	"fmt"
+	"github.com/gogo/protobuf/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 	"log"
-	"context"
 	"net"
+	"unsafe"
 )
 
 var (
 	Host = utils.Address
-	Port = fmt.Sprintf("%d",utils.Port)
+	//Port = fmt.Sprintf("%d",utils.Port)
 )
 
+var callBackSyncFunc C.ptfFuncReportData
+var callBackAsyncFunc C.ptfFuncReportData
+//export SetSyncCallBack
+func SetSyncCallBack(f C.ptfFuncReportData) {
+	callBackSyncFunc = f
+}
+//export SetAsyncCallBack
+func SetAsyncCallBack(f C.ptfFuncReportData) {
+	callBackAsyncFunc = f
+}
+func GoSyncHandleData(data []byte)[]byte {
+	result := C.CHandleData(callBackSyncFunc, (*C.char)(unsafe.Pointer(&data[0])), C.int(len(data)))
+	return result
+}
+func GoAsyncHandleData(data []byte)[]byte {
+	result := C.CHandleData(callBackAsyncFunc, (*C.char)(unsafe.Pointer(&data[0])), C.int(len(data)))
+	return result
+}
 type MsgHandle struct {}
 
 
 func (m *MsgHandle)Call(ctx context.Context, info *pb.CallReqInfo) (*pb.CallRspInfo, error) {
 	out := pb.CallRspInfo{}
-
+	rq,err := proto.Marshal(info)
+	if err != nil {
+		return &out,err
+	}
 	/////调用C函数
+	result := GoSyncHandleData(rq)
+
+	err = proto.Unmarshal(result,&out)
+	if err != nil {
+		return &out,err
+	}
 
 	//if HandleObj.Handle == nil {
 	//	out.M_Net_Rsp = []byte("The Handle Call function not instance")
@@ -56,8 +83,17 @@ func (m *MsgHandle)Call(ctx context.Context, info *pb.CallReqInfo) (*pb.CallRspI
 
 func (m *MsgHandle)AsyncCall(ctx context.Context, resultInfo *pb.SingleResultInfo) (*pb.CallRspInfo, error) {
 	out := pb.CallRspInfo{}
-	// 调用C函数
+	rq,err := proto.Marshal(resultInfo)
+	if err != nil {
+		return &out,err
+	}
+	/////调用C函数
+	result := GoAsyncHandleData(rq)
 
+	err = proto.Unmarshal(result,&out)
+	if err != nil {
+		return &out,err
+	}
 	//if HandleObj.AsyncHandle == nil {
 	//	out.M_Net_Rsp = []byte("The AsyncHandle Call function not instance")
 	//}else{
@@ -71,7 +107,8 @@ func (m *MsgHandle)AsyncCall(ctx context.Context, resultInfo *pb.SingleResultInf
 }
 
 //export Run
-func Run()  {
+func Run(port []byte)  {
+	Port := string(port)
 	listener, err := net.Listen("tcp", Host+":"+Port)
 	if err != nil {
 		log.Fatalln("faile listen at: " + Host + ":" + Port)
@@ -87,47 +124,85 @@ func Run()  {
 }
 
 //export Register
-func Register(seq,ip string){
-	err := call.Register(seq,ip,"8989")
+func Register(seq,ip,port []byte)[]byte{
+	strseq,strip,strport := string(seq),string(ip),string(port)
+	err := call.Register(strseq,strip,strport)
 	if err != nil {
-		return
+		return []byte(err.Error())
 	}
+	return nil
 }
 
 //export Publish
-func Publish(service string){
-	err := call.Publish(service)
+func Publish(service []byte)[]byte{
+	strservice := string(service)
+	err := call.Publish(strservice)
 	if err != nil {
-		return
+		return []byte(err.Error())
 	}
+	return nil
 }
 
 //export Subscribe
-func Subscribe(service,ip string){
-	err := call.Subscribe(service,ip,"8989")
+func Subscribe(service,ip,port []byte)[]byte{
+	strservice,strip,strport := string(service),string(ip),string(port)
+	err := call.Subscribe(strservice,strip,strport)
 	if err != nil {
-		return
+		return []byte(err.Error())
 	}
+	return nil
+}
+
+func Broadcast(body,service []byte)[]byte{
+	//调用C函数
+	service_name := string(service)
+	broadResult,err := call.CallBroadcast(body,service_name)
+	if err != nil {
+		fmt.Println("C++ call Broadcast err:",err.Error())
+		return nil
+	}
+	broadInfo,err := proto.Marshal(broadResult)
+	if err != nil {
+		fmt.Println("C++ call Broadcast Proto Marshal err:",err.Error())
+		return nil
+	}
+	return broadInfo
 }
 
 //export Sync
-func Sync(body []byte){
+func Sync(body []byte)[]byte{
 	//调用C函数
 	syncResult,err := call.CallSync(body)
 	if err != nil {
-
+		fmt.Println("C++ call Sync err:",err.Error())
+		return nil
 	}
-	//syncResult.
+	syncInfo,err := proto.Marshal(syncResult)
+	if err != nil {
+		fmt.Println("C++ call Sync Proto Marshal err:",err.Error())
+		return nil
+	}
+	return syncInfo
 }
 
 //export Async
-func Async(body []byte){
+func Async(body []byte)[]byte{
 	//调用C函数
-	syncResult,err := call.CallAsync(body)
+	asyncResult,err := call.CallAsync(body)
 	if err != nil {
-
+		fmt.Println("C++ call Async err:",err.Error())
+		return nil
 	}
+	asyncInfo,err := proto.Marshal(asyncResult)
+	if err != nil {
+		fmt.Println("C++ call Async Proto Marshal err:",err.Error())
+		return nil
+	}
+	return asyncInfo
 }
 
+func main(){
+
+}
 
 
