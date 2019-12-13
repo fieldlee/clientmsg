@@ -1,5 +1,8 @@
 package main
+// #include <stdio.h>
+// #include <stdlib.h>
 // #include "bridge.h"
+// #cgo LDFLAGS: -Wl,-unresolved-symbols=ignore-all
 import "C"
 import (
 	"clientmsg/call"
@@ -30,13 +33,18 @@ func SetSyncCallBack(f C.ptfFuncReportData) {
 func SetAsyncCallBack(f C.ptfFuncReportData) {
 	callBackAsyncFunc = f
 }
+
 func GoSyncHandleData(data []byte)[]byte {
 	result := C.CHandleData(callBackSyncFunc, (*C.char)(unsafe.Pointer(&data[0])), C.int(len(data)))
-	return result
+	defer C.free(unsafe.Pointer(result))
+	resultByte := C.GoBytes(unsafe.Pointer(result), C.int(unsafe.Sizeof(result)))
+	return resultByte
 }
 func GoAsyncHandleData(data []byte)[]byte {
 	result := C.CHandleData(callBackAsyncFunc, (*C.char)(unsafe.Pointer(&data[0])), C.int(len(data)))
-	return result
+	defer C.free(unsafe.Pointer(result))
+	resultByte := C.GoBytes(unsafe.Pointer(result), C.int(unsafe.Sizeof(result)))
+	return resultByte
 }
 type MsgHandle struct {}
 
