@@ -1,3 +1,5 @@
+#include <stdio.h>
+#include <stdlib.h>
 #ifndef POINT_HXX
 #define POINT_HXX
 typedef char* (*ptfFuncReportData)(const char* data,int len);

@@ -1,6 +1,4 @@
 package main
-// #include <stdio.h>
-// #include <stdlib.h>
 // #include "bridge.h"
 // #cgo LDFLAGS: -Wl,-unresolved-symbols=ignore-all
 import "C"
