@@ -1,14 +1,12 @@
 package call
 
 import (
-	"bufio"
 	pb "clientmsg/proto"
 	"clientmsg/utils"
 	"context"
 	"errors"
 	"fmt"
 	"google.golang.org/grpc"
-	"os"
 )
 
 func CallSync(mbody []byte)(*pb.NetRspInfo,error){
@@ -104,24 +102,6 @@ func CallBroadcast(mbody []byte,service string)(*pb.NetRspInfo,error){
 	//	return nil,errors.New(string(rsp.M_Err))
 	//}
 	return rsp,nil
-}
-
-func GetBody()[]byte{
-	fileName := "./2.txt"
-	file, err := os.OpenFile(fileName, os.O_RDWR, 0666)
-	if err != nil {
-		fmt.Println("Open file error!", err)
-		return nil
-	}
-	defer file.Close()
-
-	buf := bufio.NewReader(file)
-	bodyByte := make([]byte,110)
-	_,err = buf.Read(bodyByte)
-	if err != nil {
-		return nil
-	}
-	return bodyByte
 }
 
 func Register(sequence , ip , port string)error{
