@@ -12,6 +12,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 	"log"
+	"clientmsg/handle"
 	"net"
 	"unsafe"
 )
@@ -20,41 +21,30 @@ var (
 	Host = utils.Address
 	//Port = fmt.Sprintf("%d",utils.Port)
 )
-var callAnswerBack      C.ptfFuncAnswerData
-var callSyncMemoryBack  C.ptfFuncReportData
-var callAsyncMemoryBack C.ptfFuncReportData
-var callSyncReturnBack  C.ptfFuncMemory
-var callAsyncReturnBack C.ptfFuncMemory
-
-//export SetSyncMemoryBack
-func SetSyncMemoryBack(f C.ptfFuncReportData) {
-	callSyncMemoryBack = f
-}
+var callSyncBack      C.ptfFuncCallBack
+var callAsyncBack     C.ptfFuncCallBack
+var callAnswerBack    C.ptfFuncCall
 //export SetSyncReturnBack
-func SetSyncReturnBack(f C.ptfFuncMemory) {
-	callSyncReturnBack = f
-}
-
-//export SetAsyncMemoryBack
-func SetAsyncMemoryBack(f C.ptfFuncReportData) {
-	callAsyncMemoryBack = f
+func SetSyncReturnBack(f C.ptfFuncCallBack) {
+	callSyncBack = f
 }
 
 //export SetAsyncReturnBack
-func SetAsyncReturnBack(f C.ptfFuncMemory) {
-	callAsyncReturnBack = f
+func SetAsyncReturnBack(f C.ptfFuncCallBack) {
+	callAsyncBack = f
 }
 
 //export SetAnswerBack
-func SetAnswerBack(f C.ptfFuncAnswerData) {
+func SetAnswerBack(f C.ptfFuncCall) {
 	callAnswerBack = f
 }
 
 type MsgHandle struct {}
 
-func ApplyMemory(n C.int)[]byte{
-	p := C.malloc(C.size_t(n))
-	return ((*[1 << 16]byte)(p))[0:n:n]
+//export GenerateMemory
+func GenerateMemory(n int)unsafe.Pointer{
+	p := C.malloc(C.sizeof_char * C.uint(n))
+	return unsafe.Pointer(p)
 }
 
 func (m *MsgHandle)Call(ctx context.Context, info *pb.CallReqInfo) (*pb.CallRspInfo, error) {
@@ -67,19 +57,10 @@ func (m *MsgHandle)Call(ctx context.Context, info *pb.CallReqInfo) (*pb.CallRspI
 		return &out,err
 	}
 	/////调用C函数
-	length := C.CHandleData(callSyncMemoryBack, (*C.char)(unsafe.Pointer(&rq[0])), C.int(len(rq)))
-	/////申请内存空间
-	reData := ApplyMemory(length)
-	defer C.free(unsafe.Pointer(&reData[0]))
-
-	result := C.CHandleReData(callSyncReturnBack, (*C.char)(unsafe.Pointer(&rq[0])), C.int(len(rq)) , (*C.char)(unsafe.Pointer(&reData[0])))
-
-	if result == 0 {
-		return &out,errors.New("call c function handle error")
-	}
-
-	resultByte :=  C.GoBytes(unsafe.Pointer(&reData[0]), C.int(result))
-
+	length := C.int(0)
+	p := C.CHandleData(callSyncBack, (*C.char)(unsafe.Pointer(&rq[0])), C.int(len(rq)),&length)
+	defer C.free(unsafe.Pointer(p))
+	resultByte := C.GoBytes(unsafe.Pointer(p), length)
 	out.M_Net_Rsp = resultByte
 
 	//if HandleObj.Handle == nil {
@@ -122,29 +103,13 @@ func (m *MsgHandle)AsyncCall(ctx context.Context, resultInfo *pb.CallReqInfo) (*
 		return &out,err
 	}
 	/////调用C函数
-	length := C.CHandleData(callAsyncMemoryBack, (*C.char)(unsafe.Pointer(&rq[0])), C.int(len(rq)))
-	/////申请内存空间
-	reData := ApplyMemory(length)
-	defer C.free(unsafe.Pointer(&reData[0]))
+	length := C.int(0)
+	p := C.CHandleData(callAsyncBack, (*C.char)(unsafe.Pointer(&rq[0])), C.int(len(rq)),&length)
+	defer C.free(unsafe.Pointer(p))
 
-	result := C.CHandleReData(callAsyncReturnBack, (*C.char)(unsafe.Pointer(&rq[0])), C.int(len(rq)), (*C.char)(unsafe.Pointer(&reData[0])))
-
-	if result == 0 {
-		return &out,errors.New("call c function handle error")
-	}
-
-	resultByte :=  C.GoBytes(unsafe.Pointer(&reData[0]), C.int(result))
+	resultByte := C.GoBytes(unsafe.Pointer(p), length)
 
 	out.M_Net_Rsp = resultByte
-	//if HandleObj.AsyncHandle == nil {
-	//	out.M_Net_Rsp = []byte("The AsyncHandle Call function not instance")
-	//}else{
-	//	reT,err := HandleObj.AsyncHandle(resultInfo)
-	//	if err != nil {
-	//		out.M_Net_Rsp = []byte(err.Error())
-	//	}
-	//	out.M_Net_Rsp = reT
-	//}
 	return &out,nil
 }
 
@@ -157,7 +122,7 @@ func (m *MsgHandle)AsyncAnswer(ctx context.Context, resultInfo *pb.CallReqInfo) 
 		return &out,err
 	}
 	/////调用C函数
-	result := C.CHandleData(callAnswerBack, (*C.char)(unsafe.Pointer(&rq[0])), C.int(len(rq)))
+	result := C.CHandleCall(callAnswerBack, (*C.char)(unsafe.Pointer(&rq[0])), C.int(len(rq)))
 
 	if result == 0 {
 		return &out,errors.New("call c function error")
@@ -230,9 +195,14 @@ func Broadcast(body,service []byte)[]byte{
 }
 
 //export Sync
-func Sync(body []byte)[]byte{
+func Sync(body []byte,info C.BodyInfo)[]byte{
+	infoBody , err := handle.MarshalBody(body,info)
+	if err != nil {
+		fmt.Println(err.Error())
+		return nil
+	}
 	//调用C函数
-	syncResult,err := call.CallSync(body)
+	syncResult,err := call.CallSync(infoBody)
 	if err != nil {
 		fmt.Println("C++ call Sync err:",err.Error())
 		return nil
@@ -246,9 +216,14 @@ func Sync(body []byte)[]byte{
 }
 
 //export Async
-func Async(body []byte)[]byte{
+func Async(body []byte,info C.BodyInfo)[]byte{
+	infoBody , err := handle.MarshalBody(body,info)
+	if err != nil {
+		fmt.Println(err.Error())
+		return nil
+	}
 	//调用C函数
-	asyncResult,err := call.CallAsync(body)
+	asyncResult,err := call.CallAsync(infoBody)
 	if err != nil {
 		fmt.Println("C++ call Async err:",err.Error())
 		return nil
