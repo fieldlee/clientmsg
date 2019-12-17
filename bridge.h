@@ -3,7 +3,7 @@
 #ifndef POINT_HXX
 #define POINT_HXX
 typedef int (*ptfFuncReportData)(const char* data,int len);
-typedef int (*ptfFuncMemory)(char* redata);
+typedef int (*ptfFuncMemory)(const char* data,int len , char* redata);
 extern int CHandleData(ptfFuncReportData pf,const char* data,int len);
-extern int CHandleReData(ptfFuncMemory pf, char* data);
+extern int CHandleReData(ptfFuncMemory pf, const char* data,int len , char* redata);
 #endif

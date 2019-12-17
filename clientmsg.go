@@ -21,33 +21,33 @@ var (
 	//Port = fmt.Sprintf("%d",utils.Port)
 )
 
-var callBackSyncFunc C.ptfFuncReportData
-var callBackAsyncFunc C.ptfFuncReportData
-var callReDataSyncFunc C.ptfFuncMemory
-var callReDataAsyncFunc C.ptfFuncMemory
+var callSyncMemoryBack C.ptfFuncReportData
+var callAsyncMemoryBack C.ptfFuncReportData
+var callSyncReturnBack C.ptfFuncMemory
+var callAsyncReturnBack C.ptfFuncMemory
 
-//export SetSyncCallBack
-func SetSyncCallBack(f C.ptfFuncReportData) {
-	callBackSyncFunc = f
+//export SetSyncMemoryBack
+func SetSyncMemoryBack(f C.ptfFuncReportData) {
+	callSyncMemoryBack = f
 }
-//export SetReDataSync
-func SetReDataSync(f C.ptfFuncMemory) {
-	callReDataSyncFunc = f
-}
-
-//export SetAsyncCallBack
-func SetAsyncCallBack(f C.ptfFuncReportData) {
-	callBackAsyncFunc = f
+//export SetSyncReturnBack
+func SetSyncReturnBack(f C.ptfFuncMemory) {
+	callSyncReturnBack = f
 }
 
-//export SetReDataAsync
-func SetReDataAsync(f C.ptfFuncMemory) {
-	callReDataAsyncFunc = f
+//export SetAsyncMemoryBack
+func SetAsyncMemoryBack(f C.ptfFuncReportData) {
+	callAsyncMemoryBack = f
+}
+
+//export SetAsyncReturnBack
+func SetAsyncReturnBack(f C.ptfFuncMemory) {
+	callAsyncReturnBack = f
 }
 
 type MsgHandle struct {}
 
-func ApplyMemory(n int)[]byte{
+func ApplyMemory(n C.int)[]byte{
 	p := C.malloc(C.size_t(n))
 	return ((*[1 << 16]byte)(p))[0:n:n]
 }
@@ -59,12 +59,12 @@ func (m *MsgHandle)Call(ctx context.Context, info *pb.CallReqInfo) (*pb.CallRspI
 		return &out,err
 	}
 	/////调用C函数
-	length := C.CHandleData(callBackSyncFunc, (*C.char)(unsafe.Pointer(&rq[0])), C.int(len(rq)))
+	length := C.CHandleData(callSyncMemoryBack, (*C.char)(unsafe.Pointer(&rq[0])), C.int(len(rq)))
 	/////申请内存空间
 	reData := ApplyMemory(length)
 	defer C.free(unsafe.Pointer(&reData[0]))
 
-	result := C.CHandleReData(callReDataSyncFunc, (*C.char)(unsafe.Pointer(&reData[0])))
+	result := C.CHandleReData(callSyncReturnBack, (*C.char)(unsafe.Pointer(&rq[0])), C.int(len(rq)) , (*C.char)(unsafe.Pointer(&reData[0])))
 
 	if result == 0 {
 		return &out,errors.New("call c function handle error")
@@ -107,12 +107,12 @@ func (m *MsgHandle)AsyncCall(ctx context.Context, resultInfo *pb.SingleResultInf
 		return &out,err
 	}
 	/////调用C函数
-	length := C.CHandleData(callBackAsyncFunc, (*C.char)(unsafe.Pointer(&rq[0])), C.int(len(rq)))
+	length := C.CHandleData(callAsyncMemoryBack, (*C.char)(unsafe.Pointer(&rq[0])), C.int(len(rq)))
 	/////申请内存空间
 	reData := ApplyMemory(length)
 	defer C.free(unsafe.Pointer(&reData[0]))
 
-	result := C.CHandleReData(callReDataAsyncFunc, (*C.char)(unsafe.Pointer(&reData[0])))
+	result := C.CHandleReData(callAsyncReturnBack, (*C.char)(unsafe.Pointer(&rq[0])), C.int(len(rq)), (*C.char)(unsafe.Pointer(&reData[0])))
 
 	if result == 0 {
 		return &out,errors.New("call c function handle error")
