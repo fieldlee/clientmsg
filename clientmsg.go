@@ -51,41 +51,17 @@ func (m *MsgHandle)Call(ctx context.Context, info *pb.CallReqInfo) (*pb.CallRspI
 	out := pb.CallRspInfo{}
 	////remove uuid
 	info.Uuid = ""
+	////获取msg head
 
-	rq,err := proto.Marshal(info)
-	if err != nil {
-		return &out,err
-	}
+
+	////获取msg body
+	rq := info.M_Body.M_Msg
 	/////调用C函数
 	length := C.int(0)
 	p := C.CHandleData(callSyncBack, (*C.char)(unsafe.Pointer(&rq[0])), C.int(len(rq)),&length)
 	defer C.free(unsafe.Pointer(p))
 	resultByte := C.GoBytes(unsafe.Pointer(p), length)
 	out.M_Net_Rsp = resultByte
-
-	//if HandleObj.Handle == nil {
-	//	out.M_Net_Rsp = []byte("The Handle Call function not instance")
-	//}else{
-	//
-	//	//info.Service
-	//	//info.M_Body.M_MsgBody.MLBack
-	//	//info.M_Body.M_MsgBody.MSSendCount
-	//	//info.M_Body.M_MsgBody.MLServerSequence
-	//	//info.M_Body.M_MsgBody.MLExpireTime
-	//	//info.M_Body.M_MsgBody.MLAskSequence
-	//	//info.M_Body.M_MsgBody.MISendTimeApp
-	//	//info.M_Body.M_MsgBody.MCMsgType
-	//	//info.M_Body.M_MsgBody.MCMsgAckType
-	//	//info.M_Body.M_MsgBody.MIDiscard
-	//	//info.M_Body.M_MsgBody.MLAsktype
-	//	//info.M_Body.M_MsgBody.MLResult
-	//
-	//	reT,err := HandleObj.Handle(info.M_Body.M_Msg)
-	//	if err != nil {
-	//		out.M_Net_Rsp = []byte(err.Error())
-	//	}
-	//	out.M_Net_Rsp = reT
-	//}
 	return &out,nil
 }
 
@@ -97,11 +73,10 @@ func (m *MsgHandle)AsyncCall(ctx context.Context, resultInfo *pb.CallReqInfo) (*
 	}
 	/// remove Service info
 	resultInfo.Service = ""
+	////获取msg head
 
-	rq,err := proto.Marshal(resultInfo)
-	if err != nil {
-		return &out,err
-	}
+	////获取msg body
+	rq := resultInfo.M_Body.M_Msg
 	/////调用C函数
 	length := C.int(0)
 	p := C.CHandleData(callAsyncBack, (*C.char)(unsafe.Pointer(&rq[0])), C.int(len(rq)),&length)
@@ -117,10 +92,9 @@ func (m *MsgHandle)AsyncAnswer(ctx context.Context, resultInfo *pb.CallReqInfo) 
 	out := pb.CallRspInfo{}
 	resultInfo.Uuid = ""
 	resultInfo.Service = ""
-	rq,err := proto.Marshal(resultInfo)
-	if err != nil {
-		return &out,err
-	}
+
+	////获取msg body
+	rq := resultInfo.M_Body.M_Msg
 	/////调用C函数
 	result := C.CHandleCall(callAnswerBack, (*C.char)(unsafe.Pointer(&rq[0])), C.int(len(rq)))
 
@@ -178,10 +152,16 @@ func Subscribe(service,ip,port []byte)[]byte{
 	return nil
 }
 
-func Broadcast(body,service []byte)[]byte{
+func Broadcast(body,service []byte,info C.BodyInfo)[]byte{
+	infoBody , err := handle.MarshalBody(body,info)
+	if err != nil {
+		fmt.Println(err.Error())
+		return nil
+	}
 	//调用C函数
 	service_name := string(service)
-	broadResult,err := call.CallBroadcast(body,service_name)
+
+	broadResult,err := call.CallBroadcast(infoBody,service_name)
 	if err != nil {
 		fmt.Println("C++ call Broadcast err:",err.Error())
 		return nil
