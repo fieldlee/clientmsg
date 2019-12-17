@@ -20,10 +20,10 @@ var (
 	Host = utils.Address
 	//Port = fmt.Sprintf("%d",utils.Port)
 )
-
-var callSyncMemoryBack C.ptfFuncReportData
+var callAnswerBack      C.ptfFuncAnswerData
+var callSyncMemoryBack  C.ptfFuncReportData
 var callAsyncMemoryBack C.ptfFuncReportData
-var callSyncReturnBack C.ptfFuncMemory
+var callSyncReturnBack  C.ptfFuncMemory
 var callAsyncReturnBack C.ptfFuncMemory
 
 //export SetSyncMemoryBack
@@ -45,6 +45,11 @@ func SetAsyncReturnBack(f C.ptfFuncMemory) {
 	callAsyncReturnBack = f
 }
 
+//export SetAnswerBack
+func SetAnswerBack(f C.ptfFuncAnswerData) {
+	callAnswerBack = f
+}
+
 type MsgHandle struct {}
 
 func ApplyMemory(n C.int)[]byte{
@@ -54,6 +59,9 @@ func ApplyMemory(n C.int)[]byte{
 
 func (m *MsgHandle)Call(ctx context.Context, info *pb.CallReqInfo) (*pb.CallRspInfo, error) {
 	out := pb.CallRspInfo{}
+	////remove uuid
+	info.Uuid = ""
+
 	rq,err := proto.Marshal(info)
 	if err != nil {
 		return &out,err
@@ -100,8 +108,15 @@ func (m *MsgHandle)Call(ctx context.Context, info *pb.CallReqInfo) (*pb.CallRspI
 	return &out,nil
 }
 
-func (m *MsgHandle)AsyncCall(ctx context.Context, resultInfo *pb.SingleResultInfo) (*pb.CallRspInfo, error) {
+func (m *MsgHandle)AsyncCall(ctx context.Context, resultInfo *pb.CallReqInfo) (*pb.CallRspInfo, error) {
 	out := pb.CallRspInfo{}
+
+	if resultInfo.Uuid == ""{
+		return &out,errors.New("the Async Uuid is empty")
+	}
+	/// remove Service info
+	resultInfo.Service = ""
+
 	rq,err := proto.Marshal(resultInfo)
 	if err != nil {
 		return &out,err
@@ -130,6 +145,24 @@ func (m *MsgHandle)AsyncCall(ctx context.Context, resultInfo *pb.SingleResultInf
 	//	}
 	//	out.M_Net_Rsp = reT
 	//}
+	return &out,nil
+}
+
+func (m *MsgHandle)AsyncAnswer(ctx context.Context, resultInfo *pb.CallReqInfo) (*pb.CallRspInfo, error) {
+	out := pb.CallRspInfo{}
+	resultInfo.Uuid = ""
+	resultInfo.Service = ""
+	rq,err := proto.Marshal(resultInfo)
+	if err != nil {
+		return &out,err
+	}
+	/////调用C函数
+	result := C.CHandleData(callAnswerBack, (*C.char)(unsafe.Pointer(&rq[0])), C.int(len(rq)))
+
+	if result == 0 {
+		return &out,errors.New("call c function error")
+	}
+
 	return &out,nil
 }
 
