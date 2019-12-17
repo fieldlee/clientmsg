@@ -1,12 +1,12 @@
 package main
 // #include "bridge.h"
-// #cgo LDFLAGS: -Wl,-unresolved-symbols=ignore-all
 import "C"
 import (
 	"clientmsg/call"
 	pb "clientmsg/proto"
 	"clientmsg/utils"
 	"context"
+	"errors"
 	"fmt"
 	"github.com/gogo/protobuf/proto"
 	"google.golang.org/grpc"
@@ -23,29 +23,34 @@ var (
 
 var callBackSyncFunc C.ptfFuncReportData
 var callBackAsyncFunc C.ptfFuncReportData
+var callReDataSyncFunc C.ptfFuncMemory
+var callReDataAsyncFunc C.ptfFuncMemory
+
 //export SetSyncCallBack
 func SetSyncCallBack(f C.ptfFuncReportData) {
 	callBackSyncFunc = f
 }
+//export SetReDataSync
+func SetReDataSync(f C.ptfFuncMemory) {
+	callReDataSyncFunc = f
+}
+
 //export SetAsyncCallBack
 func SetAsyncCallBack(f C.ptfFuncReportData) {
 	callBackAsyncFunc = f
 }
 
-func GoSyncHandleData(data []byte)[]byte {
-	result := C.CHandleData(callBackSyncFunc, (*C.char)(unsafe.Pointer(&data[0])), C.int(len(data)))
-	defer C.free(unsafe.Pointer(result))
-	resultByte := C.GoBytes(unsafe.Pointer(result), C.int(unsafe.Sizeof(result)))
-	return resultByte
+//export SetReDataAsync
+func SetReDataAsync(f C.ptfFuncMemory) {
+	callReDataAsyncFunc = f
 }
-func GoAsyncHandleData(data []byte)[]byte {
-	result := C.CHandleData(callBackAsyncFunc, (*C.char)(unsafe.Pointer(&data[0])), C.int(len(data)))
-	defer C.free(unsafe.Pointer(result))
-	resultByte := C.GoBytes(unsafe.Pointer(result), C.int(unsafe.Sizeof(result)))
-	return resultByte
-}
+
 type MsgHandle struct {}
 
+func ApplyMemory(n int)[]byte{
+	p := C.malloc(C.size_t(n))
+	return ((*[1 << 16]byte)(p))[0:n:n]
+}
 
 func (m *MsgHandle)Call(ctx context.Context, info *pb.CallReqInfo) (*pb.CallRspInfo, error) {
 	out := pb.CallRspInfo{}
@@ -54,12 +59,20 @@ func (m *MsgHandle)Call(ctx context.Context, info *pb.CallReqInfo) (*pb.CallRspI
 		return &out,err
 	}
 	/////调用C函数
-	result := GoSyncHandleData(rq)
+	length := C.CHandleData(callBackSyncFunc, (*C.char)(unsafe.Pointer(&rq[0])), C.int(len(rq)))
+	/////申请内存空间
+	reData := ApplyMemory(length)
+	defer C.free(unsafe.Pointer(&reData[0]))
 
-	err = proto.Unmarshal(result,&out)
-	if err != nil {
-		return &out,err
+	result := C.CHandleReData(callReDataSyncFunc, (*C.char)(unsafe.Pointer(&reData[0])))
+
+	if result == 0 {
+		return &out,errors.New("call c function handle error")
 	}
+
+	resultByte :=  C.GoBytes(unsafe.Pointer(&reData[0]), C.int(result))
+
+	out.M_Net_Rsp = resultByte
 
 	//if HandleObj.Handle == nil {
 	//	out.M_Net_Rsp = []byte("The Handle Call function not instance")
@@ -94,12 +107,20 @@ func (m *MsgHandle)AsyncCall(ctx context.Context, resultInfo *pb.SingleResultInf
 		return &out,err
 	}
 	/////调用C函数
-	result := GoAsyncHandleData(rq)
+	length := C.CHandleData(callBackAsyncFunc, (*C.char)(unsafe.Pointer(&rq[0])), C.int(len(rq)))
+	/////申请内存空间
+	reData := ApplyMemory(length)
+	defer C.free(unsafe.Pointer(&reData[0]))
 
-	err = proto.Unmarshal(result,&out)
-	if err != nil {
-		return &out,err
+	result := C.CHandleReData(callReDataAsyncFunc, (*C.char)(unsafe.Pointer(&reData[0])))
+
+	if result == 0 {
+		return &out,errors.New("call c function handle error")
 	}
+
+	resultByte :=  C.GoBytes(unsafe.Pointer(&reData[0]), C.int(result))
+
+	out.M_Net_Rsp = resultByte
 	//if HandleObj.AsyncHandle == nil {
 	//	out.M_Net_Rsp = []byte("The AsyncHandle Call function not instance")
 	//}else{
