@@ -3,8 +3,12 @@
 #ifndef POINT_HXX
 #define POINT_HXX
 
+typedef struct _ReturnInfo{
+    char* content;
+    int   length;
+}ReturnInfo;
 
-typedef struct BodyInfo {
+typedef struct _BodyInfo {
      long unsigned int  Asktype;         //请求的服务类型
      long unsigned int  ServerSequence;  //服务端响应序列号
      long unsigned int  AskSequence;     //客户端请求序列号
@@ -16,12 +20,12 @@ typedef struct BodyInfo {
      unsigned int       Result;          //0: SUCCESS  !0:FAILURE
      long unsigned int  Back;            //备份数据，默认为0
      int                Discard;         //消息是否可以丢弃 0 表示可
-};
+}BodyInfo;
 
-extern struct BodyInfo InitializeBody(); // 初始化BodyInfo
+extern _BodyInfo InitializeBody(); // 初始化BodyInfo
 
-typedef char* (*ptfFuncCallBack)(const char* data,int len,int* length);
+typedef _ReturnInfo (*ptfFuncCallBack)(const char* data,int len);
 typedef int (*ptfFuncCall)(const char* data,int len);
-extern char* CHandleData(ptfFuncCallBack pf,const char* data,int len,int* length);
+extern _ReturnInfo CHandleData(ptfFuncCallBack pf,const char* data,int len);
 extern int CHandleCall(ptfFuncCall pf,const char* data,int len);
 #endif

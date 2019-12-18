@@ -1,7 +1,7 @@
 package model
 
 var (
-	HeadTag = "ent2015"
+	HeadTag = "ent2019"
 	HeadVersion = 1000
 	HeadClientType = Mid_Msg_Type
 	HeadLength = 32

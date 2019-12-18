@@ -1,6 +1,6 @@
 #include "bridge.h"
 
-char* CHandleData(ptfFuncCallBack pf,const char* data,int len,int* length){
+_ReturnInfo CHandleData(ptfFuncCallBack pf,const char* data,int len){
     return pf(data,len,length);
 }
 
@@ -9,9 +9,9 @@ int CHandleCall(ptfFuncCall pf,const char* data,int len){
 }
 
 
-struct BodyInfo InitializeBody(){
+_BodyInfo InitializeBody(){
 
-    struct BodyInfo structInitialized;
+    _BodyInfo structInitialized;
 
     structInitialized.ServerSequence = 0;
     structInitialized.AskSequence = 0;
