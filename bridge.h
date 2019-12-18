@@ -20,12 +20,14 @@ typedef struct _BodyInfo {
      unsigned int       Result;          //0: SUCCESS  !0:FAILURE
      long unsigned int  Back;            //备份数据，默认为0
      int                Discard;         //消息是否可以丢弃 0 表示可
+     int                Encrypt;         //0 不加密 1 DES 2 AES 3 RSA
+     int                Compress;        //0 不压缩 1 压缩
 }BodyInfo;
 
-extern _BodyInfo InitializeBody(); // 初始化BodyInfo
+extern BodyInfo InitializeBody(); // 初始化BodyInfo
 
-typedef _ReturnInfo (*ptfFuncCallBack)(const char* data,int len);
+typedef ReturnInfo (*ptfFuncCallBack)(const char* data,int len);
 typedef int (*ptfFuncCall)(const char* data,int len);
-extern _ReturnInfo CHandleData(ptfFuncCallBack pf,const char* data,int len);
+extern ReturnInfo CHandleData(ptfFuncCallBack pf,const char* data,int len);
 extern int CHandleCall(ptfFuncCall pf,const char* data,int len);
 #endif

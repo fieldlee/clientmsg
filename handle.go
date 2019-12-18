@@ -1,7 +1,10 @@
-package handle
+package main
+// #include "bridge.h"
 import "C"
 import (
 	pb "clientmsg/proto"
+	"errors"
+	"fmt"
 	"github.com/gogo/protobuf/proto"
 	"clientmsg/model"
 	"clientmsg/utils"
@@ -45,21 +48,28 @@ func MarshalBody(body []byte,info C.BodyInfo)([]byte,error){
 		return nil,err
 	}
 
-	fullbody := FullHead(gjbody)
+	if model.COMPRESS_TYPE(info.Compress) < model.Compression_no || model.COMPRESS_TYPE(info.Compress) >= model.CompressionWayMax{
+		return nil,errors.New("compress way error")
+	}
+
+	if model.ENCRPTION_TYPE(info.Encrypt) < model.Encryption_No || model.ENCRPTION_TYPE(info.Encrypt) >= model.Encryption_Max{
+		return nil,errors.New("encrypt way error")
+	}
+
+	fullbody := FullHead(gjbody,info.Compress,info.Encrypt)
 
 	return fullbody,nil
 }
 
 
-func FullHead(inbody []byte)[]byte{
-
+func FullHead(inbody []byte,compress ,encryptType int)[]byte{
 	headINfo := model.HeadInfo{
 		Tag:model.HeadTag,
 		Version:int16(model.HeadVersion),
 		ClientType:int16(model.HeadClientType),
 		HeadLength:int16(model.HeadLength),
-		CompressWay:uint8(model.HeadCompressWay),
-		Encryption:uint8(model.HeadEncryption),
+		CompressWay:uint8(compress),
+		Encryption:uint8(encryptType),
 		Sig:uint8(model.HeadSig),
 		Format:uint8(model.HeadFormat),
 		NetFlag:uint8(model.HeadNetFlag),
@@ -68,6 +78,28 @@ func FullHead(inbody []byte)[]byte{
 		UncompressedSize:int32(len(inbody)),
 		Back2:0,
 	}
+	encryptByte := inbody
+	//////加密
+	switch model.ENCRPTION_TYPE(headINfo.Encryption) {
+	case model.Encryption_AES:
+		encryptByte,_ = utils.EncryptAes(inbody,[]byte(model.PassPass))
+	case model.Encryption_RSA:
+		pubkey := utils.BytesToPublicKey(inbody)
+		encryptByte = utils.EncryptWithPublicKey(inbody,pubkey)
+	case model.Encryption_Des:
+		encryptByte = utils.Encrypt3DES(inbody,[]byte(model.PassPass))
+	}
+	inbody = encryptByte
+	/////压缩body bytes
+	if model.COMPRESS_TYPE(headINfo.CompressWay) == model.Compression_zip {
+		if zipbody,err := utils.ZipByte(inbody);err != nil {
+			fmt.Println(err.Error())
+		}else{
+			inbody = zipbody
+		}
+	}
+	/////修改压缩后的buffer长度
+	headINfo.BufSize = int32(len(inbody))
 
 	inbody = utils.JoinHeadAndBody(headINfo,inbody)
 

@@ -12,7 +12,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 	"log"
-	"clientmsg/handle"
 	"net"
 	"unsafe"
 )
@@ -150,7 +149,7 @@ func Subscribe(service,ip,port []byte)[]byte{
 }
 
 func Broadcast(body,service []byte,info C.BodyInfo)[]byte{
-	infoBody , err := handle.MarshalBody(body,info)
+	infoBody , err := MarshalBody(body,info)
 	if err != nil {
 		fmt.Println(err.Error())
 		return nil
@@ -173,7 +172,7 @@ func Broadcast(body,service []byte,info C.BodyInfo)[]byte{
 
 //export Sync
 func Sync(body []byte,info C.BodyInfo)[]byte{
-	infoBody , err := handle.MarshalBody(body,info)
+	infoBody , err := MarshalBody(body,info)
 	if err != nil {
 		fmt.Println(err.Error())
 		return nil
@@ -194,7 +193,7 @@ func Sync(body []byte,info C.BodyInfo)[]byte{
 
 //export Async
 func Async(body []byte,info C.BodyInfo)[]byte{
-	infoBody , err := handle.MarshalBody(body,info)
+	infoBody , err := MarshalBody(body,info)
 	if err != nil {
 		fmt.Println(err.Error())
 		return nil

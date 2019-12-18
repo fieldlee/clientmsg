@@ -1,10 +1,21 @@
 package utils
 
 import (
+	"bufio"
 	"bytes"
-	"encoding/binary"
 	"clientmsg/model"
+	"compress/gzip"
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/des"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/sha512"
+	"crypto/x509"
+	"encoding/binary"
+	"encoding/pem"
 	"fmt"
+	"io"
 )
 
 func JoinHeadAndBody(info model.HeadInfo,in []byte)[]byte{
@@ -109,4 +120,155 @@ func BytesToInt32(b []byte) int32 {
 	var x int32
 	binary.Read(bytesBuffer, binary.LittleEndian, &x)
 	return int32(x)
+}
+
+
+func UnzipByte(data []byte) (resData []byte, err error) {
+	b := bytes.NewBuffer(data)
+
+	var r io.Reader
+	r, err = gzip.NewReader(b)
+	if err != nil {
+		return
+	}
+
+	var resB bytes.Buffer
+	_, err = resB.ReadFrom(r)
+	if err != nil {
+		return
+	}
+
+	resData = resB.Bytes()
+
+	return
+}
+
+func ZipByte(data []byte) (compressedData []byte, err error) {
+	var b bytes.Buffer
+	gz := gzip.NewWriter(&b)
+
+	_, err = gz.Write(data)
+	if err != nil {
+		return
+	}
+
+	if err = gz.Flush(); err != nil {
+		return
+	}
+
+	if err = gz.Close(); err != nil {
+		return
+	}
+
+	compressedData = b.Bytes()
+
+	return
+}
+
+
+// GenerateKeyPair generates a new key pair
+func GenerateKeyPair(data []byte,bits int) (*rsa.PrivateKey, *rsa.PublicKey) {
+	b := bytes.NewBuffer(data)
+	r := bufio.NewReader(b)
+	privkey, err := rsa.GenerateKey(r, bits)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	return privkey, &privkey.PublicKey
+}
+
+// PrivateKeyToBytes private key to bytes
+func PrivateKeyToBytes(priv *rsa.PrivateKey) []byte {
+	privBytes := pem.EncodeToMemory(
+		&pem.Block{
+			Type:  "RSA PRIVATE KEY",
+			Bytes: x509.MarshalPKCS1PrivateKey(priv),
+		},
+	)
+
+	return privBytes
+}
+
+// PublicKeyToBytes public key to bytes
+func PublicKeyToBytes(pub *rsa.PublicKey) []byte {
+	pubASN1, err := x509.MarshalPKIXPublicKey(pub)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	pubBytes := pem.EncodeToMemory(&pem.Block{
+		Type:  "RSA PUBLIC KEY",
+		Bytes: pubASN1,
+	})
+
+	return pubBytes
+}
+
+
+
+// BytesToPublicKey bytes to public key
+func BytesToPublicKey(pub []byte) *rsa.PublicKey {
+	block, _ := pem.Decode(pub)
+	enc := x509.IsEncryptedPEMBlock(block)
+	b := block.Bytes
+	var err error
+	if enc {
+		fmt.Println("is encrypted pem block")
+		b, err = x509.DecryptPEMBlock(block, nil)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+	}
+	ifc, err := x509.ParsePKIXPublicKey(b)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	key, ok := ifc.(*rsa.PublicKey)
+	if !ok {
+		fmt.Println("not ok")
+	}
+	return key
+}
+
+// EncryptWithPublicKey encrypts data with public key
+func EncryptWithPublicKey(msg []byte, pub *rsa.PublicKey) []byte {
+	hash := sha512.New()
+	ciphertext, err := rsa.EncryptOAEP(hash, rand.Reader, pub, msg, nil)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	return ciphertext
+}
+
+func PKCS5Padding(ciphertext []byte, blockSize int) []byte {
+	padding := blockSize - len(ciphertext)%blockSize
+	padtext := bytes.Repeat([]byte{byte(padding)}, padding)
+	return append(ciphertext, padtext...)
+}
+
+func EncryptAes(origData, key []byte) ([]byte, error) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+	blockSize := block.BlockSize()
+	origData = PKCS5Padding(origData, blockSize)
+	blockMode := cipher.NewCBCEncrypter(block, key[:blockSize])
+	crypted := make([]byte, len(origData))
+	blockMode.CryptBlocks(crypted, origData)
+	return crypted, nil
+}
+
+func padding(src []byte,blocksize int) []byte {
+	padnum:=blocksize-len(src)%blocksize
+	pad:=bytes.Repeat([]byte{byte(padnum)},padnum)
+	return append(src,pad...)
+}
+
+func Encrypt3DES(src []byte,key []byte) []byte {
+	block,_:= des.NewTripleDESCipher(key)
+	src= padding(src,block.BlockSize())
+	blockmode:=cipher.NewCBCEncrypter(block,key[:block.BlockSize()])
+	blockmode.CryptBlocks(src,src)
+	return src
 }
