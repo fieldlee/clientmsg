@@ -52,7 +52,6 @@ func (m *MsgHandle)Call(ctx context.Context, info *pb.CallReqInfo) (*pb.CallRspI
 	info.Uuid = ""
 	////获取msg head
 
-
 	////获取msg body
 	rq := info.M_Body.M_Msg
 	/////调用C函数
@@ -148,6 +147,7 @@ func Subscribe(service,ip,port []byte)[]byte{
 	return nil
 }
 
+//export Broadcast
 func Broadcast(body,service []byte,info C.BodyInfo)[]byte{
 	infoBody , err := MarshalBody(body,info)
 	if err != nil {

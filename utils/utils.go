@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"bufio"
 	"bytes"
 	"clientmsg/model"
 	"compress/gzip"
@@ -10,12 +9,13 @@ import (
 	"crypto/des"
 	"crypto/rand"
 	"crypto/rsa"
-	"crypto/sha512"
+	"crypto/sha256"
 	"crypto/x509"
 	"encoding/binary"
 	"encoding/pem"
 	"fmt"
 	"io"
+	"reflect"
 )
 
 func JoinHeadAndBody(info model.HeadInfo,in []byte)[]byte{
@@ -167,10 +167,8 @@ func ZipByte(data []byte) (compressedData []byte, err error) {
 
 
 // GenerateKeyPair generates a new key pair
-func GenerateKeyPair(data []byte,bits int) (*rsa.PrivateKey, *rsa.PublicKey) {
-	b := bytes.NewBuffer(data)
-	r := bufio.NewReader(b)
-	privkey, err := rsa.GenerateKey(r, bits)
+func GenerateKeyPair(bits int) (*rsa.PrivateKey, *rsa.PublicKey) {
+	privkey, err := rsa.GenerateKey(rand.Reader, bits)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
@@ -219,10 +217,13 @@ func BytesToPublicKey(pub []byte) *rsa.PublicKey {
 			fmt.Println(err.Error())
 		}
 	}
+	fmt.Println(pub)
+	fmt.Println(b)
 	ifc, err := x509.ParsePKIXPublicKey(b)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
+	fmt.Println(reflect.TypeOf(ifc))
 	key, ok := ifc.(*rsa.PublicKey)
 	if !ok {
 		fmt.Println("not ok")
@@ -232,13 +233,44 @@ func BytesToPublicKey(pub []byte) *rsa.PublicKey {
 
 // EncryptWithPublicKey encrypts data with public key
 func EncryptWithPublicKey(msg []byte, pub *rsa.PublicKey) []byte {
-	hash := sha512.New()
-	ciphertext, err := rsa.EncryptOAEP(hash, rand.Reader, pub, msg, nil)
+	label := []byte("")
+	sha256hash := sha256.New()
+	ciphertext, err := rsa.EncryptOAEP(sha256hash, rand.Reader, pub, msg, label)
 	if err != nil {
-		fmt.Println(err.Error())
+		return nil
 	}
 	return ciphertext
 }
+
+// BytesToPrivateKey bytes to private key
+func BytesToPrivateKey(priv []byte) *rsa.PrivateKey {
+	block, _ := pem.Decode(priv)
+	enc := x509.IsEncryptedPEMBlock(block)
+	b := block.Bytes
+	var err error
+	if enc {
+		fmt.Println("is encrypted pem block")
+		b, err = x509.DecryptPEMBlock(block, nil)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+	}
+	key, err := x509.ParsePKCS1PrivateKey(b)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	return key
+}
+// DecryptWithPrivateKey decrypts data with private key
+func DecryptWithPrivateKey(ciphertext []byte, priv *rsa.PrivateKey) []byte {
+	sha256hash := sha256.New()
+	decryptedtext, err := rsa.DecryptOAEP(sha256hash, rand.Reader, priv, ciphertext, nil)
+	if err != nil {
+		return nil
+	}
+	return decryptedtext
+}
+
 
 func PKCS5Padding(ciphertext []byte, blockSize int) []byte {
 	padding := blockSize - len(ciphertext)%blockSize
@@ -259,10 +291,35 @@ func EncryptAes(origData, key []byte) ([]byte, error) {
 	return crypted, nil
 }
 
+func DecryptAes(crypted, key []byte) ([]byte, error) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+	blockSize := block.BlockSize()
+	blockMode := cipher.NewCBCDecrypter(block, key[:blockSize])
+	origData := make([]byte, len(crypted))
+	blockMode.CryptBlocks(origData, crypted)
+	origData = PKCS5UnPadding(origData)
+	return origData, nil
+}
+
 func padding(src []byte,blocksize int) []byte {
 	padnum:=blocksize-len(src)%blocksize
 	pad:=bytes.Repeat([]byte{byte(padnum)},padnum)
 	return append(src,pad...)
+}
+
+func unpadding(src []byte) []byte {
+	n:=len(src)
+	unpadnum:=int(src[n-1])
+	return src[:n-unpadnum]
+}
+
+func PKCS5UnPadding(origData []byte) []byte {
+	length := len(origData)
+	unpadding := int(origData[length-1])
+	return origData[:(length - unpadding)]
 }
 
 func Encrypt3DES(src []byte,key []byte) []byte {
@@ -270,5 +327,13 @@ func Encrypt3DES(src []byte,key []byte) []byte {
 	src= padding(src,block.BlockSize())
 	blockmode:=cipher.NewCBCEncrypter(block,key[:block.BlockSize()])
 	blockmode.CryptBlocks(src,src)
+	return src
+}
+
+func Decrypt3DES(src []byte,key []byte) []byte {
+	block,_:=des.NewTripleDESCipher(key)
+	blockmode:=cipher.NewCBCDecrypter(block,key[:block.BlockSize()])
+	blockmode.CryptBlocks(src,src)
+	src=unpadding(src)
 	return src
 }

@@ -54,6 +54,12 @@ func MarshalBody(body []byte,info C.BodyInfo)([]byte,error){
 
 	if model.ENCRPTION_TYPE(info.Encrypt) < model.Encryption_No || model.ENCRPTION_TYPE(info.Encrypt) >= model.Encryption_Max{
 		return nil,errors.New("encrypt way error")
+	}else{
+		if model.ENCRPTION_TYPE(info.Encrypt) == model.Encryption_RSA{
+			if len(gjbody) > 440 {
+				return nil,errors.New("body bytes length too long, cann't use rsa encrypt type")
+			}
+		}
 	}
 
 	fullbody := FullHead(gjbody,info.Compress,info.Encrypt)
@@ -82,12 +88,12 @@ func FullHead(inbody []byte,compress ,encryptType int)[]byte{
 	//////加密
 	switch model.ENCRPTION_TYPE(headINfo.Encryption) {
 	case model.Encryption_AES:
-		encryptByte,_ = utils.EncryptAes(inbody,[]byte(model.PassPass))
+		encryptByte,_ = utils.EncryptAes(inbody,[]byte(model.PassPass16))
 	case model.Encryption_RSA:
 		pubkey := utils.BytesToPublicKey(inbody)
 		encryptByte = utils.EncryptWithPublicKey(inbody,pubkey)
 	case model.Encryption_Des:
-		encryptByte = utils.Encrypt3DES(inbody,[]byte(model.PassPass))
+		encryptByte = utils.Encrypt3DES(inbody,[]byte(model.PassPass24))
 	}
 	inbody = encryptByte
 	/////压缩body bytes
