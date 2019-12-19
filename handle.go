@@ -62,7 +62,7 @@ func MarshalBody(body []byte,info C.BodyInfo)([]byte,error){
 		}
 	}
 
-	fullbody := FullHead(gjbody,info.Compress,info.Encrypt)
+	fullbody := FullHead(gjbody,int(info.Compress),int(info.Encrypt))
 
 	return fullbody,nil
 }

@@ -38,12 +38,12 @@ func TestEncryptAes(t *testing.T) {
 	data := []byte("hello sfadsfassdfasdsfadsfassdfasdssfadsfadsfassdfasdfasdfasdfasdfdasfadsfworldfasdfasdfadsfadsfadsfasdfa的说法都是法师打发的算法第三方打到谁发的顺丰sdfasdfasdfasdfasdfdasfadsfworldfasdfasdfadsfadsfadsfasdfa的说法都是法师打发的算法第三方打到谁发的顺丰sdfasdfasdfasdfasdfdasfadsfworldfasdfasdfadsfadsfadsfasdfa的说法都是法师打发的算法第三方打到谁发的顺丰sdfasdfasdfasdfasdfdasfadsf")
 	fmt.Println(len(data))
 
-	encryptBytes,err := EncryptAes(data,[]byte(model.PassPass))
+	encryptBytes,err := EncryptAes(data,[]byte(model.PassPass16))
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	decryptBytes,err := DecryptAes(encryptBytes,[]byte(model.PassPass))
+	decryptBytes,err := DecryptAes(encryptBytes,[]byte(model.PassPass16))
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -54,9 +54,9 @@ func TestEncrypt3DES(t *testing.T) {
 	data := []byte("hello sfadsfassdfasdsfadsfassdfasdssfadsfadsfassdfasdfasdfasdfasdfdasfadsfworldfasdfasdfadsfadsfadsfasdfa的说法都是法师打发的算法第三方打到谁发的顺丰sdfasdfasdfasdfasdfdasfadsfworldfasdfasdfadsfadsfadsfasdfa的说法都是法师打发的算法第三方打到谁发的顺丰sdfasdfasdfasdfasdfdasfadsfworldfasdfasdfadsfadsfadsfasdfa的说法都是法师打发的算法第三方打到谁发的顺丰sdfasdfasdfasdfasdfdasfadsf")
 	fmt.Println(len(data))
 
-	encryptBytes := Encrypt3DES(data,[]byte(model.PassPass16))
+	encryptBytes := Encrypt3DES(data,[]byte(model.PassPass24))
 
-	decryptBytes := Decrypt3DES(encryptBytes,[]byte(model.PassPass16))
+	decryptBytes := Decrypt3DES(encryptBytes,[]byte(model.PassPass24))
 
 	fmt.Println(string(decryptBytes))
 }

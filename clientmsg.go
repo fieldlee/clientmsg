@@ -18,11 +18,16 @@ import (
 
 var (
 	Host = utils.Address
-	//Port = fmt.Sprintf("%d",utils.Port)
+	Port = fmt.Sprintf("%d",utils.Port)
 )
 var callSyncBack      C.ptfFuncCallBack
 var callAsyncBack     C.ptfFuncCallBack
 var callAnswerBack    C.ptfFuncCall
+
+type RInfo C.CallReturnInfo
+type MsgInfo C.MsgReturnInfo
+type SingleInfo C.MsgSingleInfo
+
 //export SetSyncReturnBack
 func SetSyncReturnBack(f C.ptfFuncCallBack) {
 	callSyncBack = f
@@ -42,7 +47,7 @@ type MsgHandle struct {}
 
 //export GenerateMemory
 func GenerateMemory(n int)unsafe.Pointer{
-	p := C.malloc(C.sizeof_char * C.uint(n))
+	p := C.malloc(C.sizeof_char * C.ulong(n))
 	return unsafe.Pointer(p)
 }
 
@@ -101,8 +106,7 @@ func (m *MsgHandle)AsyncAnswer(ctx context.Context, resultInfo *pb.CallReqInfo) 
 }
 
 //export Run
-func Run(port []byte)  {
-	Port := string(port)
+func Run()  {
 	listener, err := net.Listen("tcp", Host+":"+Port)
 	if err != nil {
 		log.Fatalln("faile listen at: " + Host + ":" + Port)
@@ -118,56 +122,191 @@ func Run(port []byte)  {
 }
 
 //export Register
-func Register(seq,ip,port []byte)[]byte{
-	strseq,strip,strport := string(seq),string(ip),string(port)
-	err := call.Register(strseq,strip,strport)
+func Register(seq []byte)RInfo{
+	r := RInfo{}
+	r.success = C.int(1)
+
+	strseq := string(seq)
+	err := call.Register(strseq)
 	if err != nil {
-		return []byte(err.Error())
+		r.success = C.int(0)
+		r.error = C.CString(err.Error())
 	}
-	return nil
+	return r
 }
 
+
 //export Publish
-func Publish(service []byte)[]byte{
+func Publish(service []byte)RInfo{
+	r := RInfo{}
+	r.success = C.int(1)
+
 	strservice := string(service)
 	err := call.Publish(strservice)
 	if err != nil {
-		return []byte(err.Error())
+		r.success = C.int(0)
+		r.error = C.CString(err.Error())
 	}
-	return nil
+	return r
 }
 
 //export Subscribe
-func Subscribe(service,ip,port []byte)[]byte{
-	strservice,strip,strport := string(service),string(ip),string(port)
-	err := call.Subscribe(strservice,strip,strport)
+func Subscribe(service[]byte)RInfo{
+	r := RInfo{}
+	r.success = C.int(1)
+
+	strservice := string(service)
+	err := call.Subscribe(strservice)
 	if err != nil {
-		return []byte(err.Error())
+		r.success = C.int(0)
+		r.error = C.CString(err.Error())
 	}
-	return nil
+	return r
 }
 
 //export Broadcast
-func Broadcast(body,service []byte,info C.BodyInfo)[]byte{
+func Broadcast(body,service []byte,info C.BodyInfo)RInfo{
+	r := RInfo{}
+	r.success = C.int(1)
+
 	infoBody , err := MarshalBody(body,info)
 	if err != nil {
-		fmt.Println(err.Error())
-		return nil
+		r.success = C.int(0)
+		r.error = C.CString(err.Error())
+		return r
 	}
 	//调用C函数
 	service_name := string(service)
 
 	broadResult,err := call.CallBroadcast(infoBody,service_name)
 	if err != nil {
-		fmt.Println("C++ call Broadcast err:",err.Error())
-		return nil
+		r.success = C.int(0)
+		r.error = C.CString(err.Error())
+		return r
 	}
-	broadInfo,err := proto.Marshal(broadResult)
-	if err != nil {
-		fmt.Println("C++ call Broadcast Proto Marshal err:",err.Error())
-		return nil
+
+	if broadResult.M_Err != nil {
+		r.success = C.int(0)
+		r.error = C.CString(string(broadResult.M_Err ))
+		return r
 	}
-	return broadInfo
+
+	list := make([]MsgInfo,0)
+	for _ ,v := range broadResult.M_Net_Rsp{
+		m := MsgInfo{}
+		m.key = C.int(v.Key)
+		m.sendcount = C.int(v.SendCount)
+		m.successcount = C.int(v.SuccessCount)
+		m.failurecount = C.int(v.FailCount)
+		m.discardcount = C.int(v.DiscardCount)
+		m.resendcount = C.int(v.ReSendCount)
+		m.error       = C.CString(string(v.CheckErr))
+
+		slist := make([]SingleInfo,0)
+		for _,sv := range v.ResultList{
+			sinfo := SingleInfo{}
+			sinfo.sequence = C.int(sv.AskSequence)
+			sinfo.sendtimeapp = C.int(sv.SendTimeApp)
+			sinfo.msgtype     = C.int(sv.MsgType)
+			sinfo.msgacktype  = C.int(sv.MsgAckType)
+			if sv.IsTimeOut {
+				sinfo.istimeout = C.int(1)
+			}else{
+				sinfo.istimeout = C.int(0)
+			}
+
+			if sv.IsDisCard {
+				sinfo.isdiscard = C.int(1)
+			}else{
+				sinfo.isdiscard = C.int(0)
+			}
+
+			if sv.IsResend {
+				sinfo.isresend  = C.int(1)
+			}else{
+				sinfo.isresend  = C.int(0)
+			}
+			if sv.Errinfo != nil {
+				sinfo.error = C.CString(string(sv.Errinfo))
+			}
+			if sv.Result != nil {
+				sinfo.result =  C.CString(string(sv.Result))
+			}
+
+			slist = append(slist,sinfo)
+		}
+
+		m.resultlist = (*C.char)(unsafe.Pointer(&slist[0]))
+
+		list = append(list,m)
+	}
+
+	r.result = (*C.char)(unsafe.Pointer(&list[0]))
+	return r
+}
+
+//export B
+func B(broadResult *pb.NetRspInfo)RInfo{
+	r := RInfo{}
+	r.success = C.int(1)
+	if broadResult.M_Err != nil {
+		r.success = C.int(0)
+		r.error = C.CString(string(broadResult.M_Err ))
+		return r
+	}
+
+	list := make([]MsgInfo,0)
+	for _ ,v := range broadResult.M_Net_Rsp{
+		m := MsgInfo{}
+		m.key = C.int(v.Key)
+		m.sendcount = C.int(v.SendCount)
+		m.successcount = C.int(v.SuccessCount)
+		m.failurecount = C.int(v.FailCount)
+		m.discardcount = C.int(v.DiscardCount)
+		m.resendcount = C.int(v.ReSendCount)
+		m.error       = C.CString(string(v.CheckErr))
+
+		slist := make([]SingleInfo,0)
+		for _,sv := range v.ResultList{
+			sinfo := SingleInfo{}
+			sinfo.sequence = C.int(sv.AskSequence)
+			sinfo.sendtimeapp = C.int(sv.SendTimeApp)
+			sinfo.msgtype     = C.int(sv.MsgType)
+			sinfo.msgacktype  = C.int(sv.MsgAckType)
+			if sv.IsTimeOut {
+				sinfo.istimeout = C.int(1)
+			}else{
+				sinfo.istimeout = C.int(0)
+			}
+
+			if sv.IsDisCard {
+				sinfo.isdiscard = C.int(1)
+			}else{
+				sinfo.isdiscard = C.int(0)
+			}
+
+			if sv.IsResend {
+				sinfo.isresend  = C.int(1)
+			}else{
+				sinfo.isresend  = C.int(0)
+			}
+			if sv.Errinfo != nil {
+				sinfo.error = C.CString(string(sv.Errinfo))
+			}
+			if sv.Result != nil {
+				sinfo.result =  C.CString(string(sv.Result))
+			}
+
+			slist = append(slist,sinfo)
+		}
+
+		m.resultlist = (*C.char)(unsafe.Pointer(&slist[0]))
+
+		list = append(list,m)
+	}
+	fmt.Println(list)
+	r.result = (*C.char)(unsafe.Pointer(&list[0]))
+	return r
 }
 
 //export Sync

@@ -104,7 +104,7 @@ func CallBroadcast(mbody []byte,service string)(*pb.NetRspInfo,error){
 	return rsp,nil
 }
 
-func Register(sequence , ip , port string)error{
+func Register(sequence string)error{
 	caddr := fmt.Sprintf("%v:%v",utils.ServerAddr,utils.ServerPort)
 
 	conn, err := grpc.Dial(caddr, grpc.WithInsecure())
@@ -117,8 +117,6 @@ func Register(sequence , ip , port string)error{
 	ctx = context.Background()
 	registerReturn , err := c.Register(ctx,&pb.RegisterInfo{
 		Sequence:sequence,
-		Ip:ip,
-		Port:port,
 	})
 	if err != nil {
 		return err
@@ -151,7 +149,7 @@ func Publish(service string)error{
 	return nil
 }
 
-func Subscribe(service,ip,port string)error{
+func Subscribe(service string)error{
 	caddr := fmt.Sprintf("%v:%v",utils.ServerAddr,utils.ServerPort)
 	conn, err := grpc.Dial(caddr, grpc.WithInsecure())
 	if err != nil {
@@ -163,8 +161,6 @@ func Subscribe(service,ip,port string)error{
 	ctx = context.Background()
 	subscribeInfo,err := c.Subscribe(ctx,&pb.SubscribeInfo{
 		Service:service,
-		Ip:ip,
-		Port:port,
 	})
 	if err != nil {
 		return err
