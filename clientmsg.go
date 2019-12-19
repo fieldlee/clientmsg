@@ -26,7 +26,6 @@ var callAnswerBack    C.ptfFuncCall
 
 type RInfo C.CallReturnInfo
 type MsgInfo C.MsgReturnInfo
-type SingleInfo C.MsgSingleInfo
 
 //export SetSyncReturnBack
 func SetSyncReturnBack(f C.ptfFuncCallBack) {
@@ -194,59 +193,33 @@ func Broadcast(body,service []byte,info C.BodyInfo)RInfo{
 	list := make([]MsgInfo,0)
 	for _ ,v := range broadResult.M_Net_Rsp{
 		m := MsgInfo{}
-		m.key = C.int(v.Key)
-		m.sendcount = C.int(v.SendCount)
-		m.successcount = C.int(v.SuccessCount)
-		m.failurecount = C.int(v.FailCount)
-		m.discardcount = C.int(v.DiscardCount)
-		m.resendcount = C.int(v.ReSendCount)
-		m.error       = C.CString(string(v.CheckErr))
-
-		slist := make([]SingleInfo,0)
-		for _,sv := range v.ResultList{
-			sinfo := SingleInfo{}
-			sinfo.sequence = C.int(sv.AskSequence)
-			sinfo.sendtimeapp = C.int(sv.SendTimeApp)
-			sinfo.msgtype     = C.int(sv.MsgType)
-			sinfo.msgacktype  = C.int(sv.MsgAckType)
-			if sv.IsTimeOut {
-				sinfo.istimeout = C.int(1)
-			}else{
-				sinfo.istimeout = C.int(0)
-			}
-
-			if sv.IsDisCard {
-				sinfo.isdiscard = C.int(1)
-			}else{
-				sinfo.isdiscard = C.int(0)
-			}
-
-			if sv.IsResend {
-				sinfo.isresend  = C.int(1)
-			}else{
-				sinfo.isresend  = C.int(0)
-			}
-			if sv.Errinfo != nil {
-				sinfo.error = C.CString(string(sv.Errinfo))
-			}
-			if sv.Result != nil {
-				sinfo.result =  C.CString(string(sv.Result))
-			}
-
-			slist = append(slist,sinfo)
-		}
-
-		m.resultlist = (*C.char)(unsafe.Pointer(&slist[0]))
-
+		m.key 		= C.int(v.Key)
+		m.error     = C.CString(string(v.CheckErr))
+		m.result	= (*C.char)(unsafe.Pointer(&v.Result[0]))
 		list = append(list,m)
 	}
 
-	r.result = (*C.char)(unsafe.Pointer(&list[0]))
+	r.resultlist = (*C.char)(unsafe.Pointer(&list[0]))
 	return r
 }
 
 //export B
-func B(broadResult *pb.NetRspInfo)RInfo{
+func B()RInfo{
+	broadResult := &pb.NetRspInfo{
+		M_Err:nil,
+		M_Net_Rsp: map[uint32]*pb.SendResultInfo{
+			12:&pb.SendResultInfo{
+				Key:12,
+				CheckErr:nil,
+				Result:[]byte("hello struct"),
+			},
+			13:&pb.SendResultInfo{
+				Key:13,
+				CheckErr:nil,
+				Result:[]byte("hello struct2"),
+			},
+		},
+	}
 	r := RInfo{}
 	r.success = C.int(1)
 	if broadResult.M_Err != nil {
@@ -259,53 +232,13 @@ func B(broadResult *pb.NetRspInfo)RInfo{
 	for _ ,v := range broadResult.M_Net_Rsp{
 		m := MsgInfo{}
 		m.key = C.int(v.Key)
-		m.sendcount = C.int(v.SendCount)
-		m.successcount = C.int(v.SuccessCount)
-		m.failurecount = C.int(v.FailCount)
-		m.discardcount = C.int(v.DiscardCount)
-		m.resendcount = C.int(v.ReSendCount)
 		m.error       = C.CString(string(v.CheckErr))
-
-		slist := make([]SingleInfo,0)
-		for _,sv := range v.ResultList{
-			sinfo := SingleInfo{}
-			sinfo.sequence = C.int(sv.AskSequence)
-			sinfo.sendtimeapp = C.int(sv.SendTimeApp)
-			sinfo.msgtype     = C.int(sv.MsgType)
-			sinfo.msgacktype  = C.int(sv.MsgAckType)
-			if sv.IsTimeOut {
-				sinfo.istimeout = C.int(1)
-			}else{
-				sinfo.istimeout = C.int(0)
-			}
-
-			if sv.IsDisCard {
-				sinfo.isdiscard = C.int(1)
-			}else{
-				sinfo.isdiscard = C.int(0)
-			}
-
-			if sv.IsResend {
-				sinfo.isresend  = C.int(1)
-			}else{
-				sinfo.isresend  = C.int(0)
-			}
-			if sv.Errinfo != nil {
-				sinfo.error = C.CString(string(sv.Errinfo))
-			}
-			if sv.Result != nil {
-				sinfo.result =  C.CString(string(sv.Result))
-			}
-
-			slist = append(slist,sinfo)
-		}
-
-		m.resultlist = (*C.char)(unsafe.Pointer(&slist[0]))
+		m.result = (*C.char)(unsafe.Pointer(&v.Result[0]))
 
 		list = append(list,m)
 	}
 	fmt.Println(list)
-	r.result = (*C.char)(unsafe.Pointer(&list[0]))
+	r.resultlist = (*C.char)(unsafe.Pointer(&list[0]))
 	return r
 }
 

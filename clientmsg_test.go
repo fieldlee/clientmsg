@@ -1,8 +1,6 @@
 package main
 
 import (
-	pb "clientmsg/proto"
-	"errors"
 	"fmt"
 	"reflect"
 	"testing"
@@ -15,6 +13,9 @@ func TestTest(t *testing.T){
 }
 
 func TestB2(t *testing.T) {
+	/***
+
+
 	broadResult := &pb.NetRspInfo{
 		M_Err:nil,
 		M_Net_Rsp: map[uint32]*pb.SendResultInfo{
@@ -86,8 +87,8 @@ func TestB2(t *testing.T) {
 			},
 		},
 	}
-
-	r := B(broadResult)
+	*/
+	r := B()
 	fmt.Println(reflect.TypeOf(r))
 	fmt.Println(r)
 }

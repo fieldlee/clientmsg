@@ -10,32 +10,15 @@ typedef struct _ReturnInfo{
 
 
 typedef struct _CallReturnInfo{
-    char* result;
+    char* resultlist;
     char* error;
     int   success;
 }CallReturnInfo;
 
-typedef struct _MsgSingleInfo{
-    int     sequence;
-    int     sendtimeapp;
-    int     msgtype;
-    int     msgacktype;
-    int     istimeout;
-    int     isdiscard;
-    int     isresend;
-    char*   error;
-    char*   result;
-}MsgSingleInfo;
-
 typedef struct _MsgReturnInfo{
     int  key;
-    int  sendcount;
-    int  successcount;
-    int  failurecount;
-    int  discardcount;
-    int  resendcount;
     char* error;
-    char* resultlist;
+    char* result;
 }MsgReturnInfo;
 
 
