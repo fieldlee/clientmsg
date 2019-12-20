@@ -96,6 +96,7 @@ func FullHead(inbody []byte,compress ,encryptType int)[]byte{
 		encryptByte = utils.Encrypt3DES(inbody,[]byte(model.PassPass24))
 	}
 	inbody = encryptByte
+	headINfo.UncompressedSize = int32(len(inbody))
 	/////压缩body bytes
 	if model.COMPRESS_TYPE(headINfo.CompressWay) == model.Compression_zip {
 		if zipbody,err := utils.ZipByte(inbody);err != nil {
@@ -109,5 +110,5 @@ func FullHead(inbody []byte,compress ,encryptType int)[]byte{
 
 	inbody = utils.JoinHeadAndBody(headINfo,inbody)
 
-	return nil
+	return inbody
 }
