@@ -6,13 +6,14 @@
 typedef struct _ReturnInfo{
     char* content;
     int   length;
+    int   success;         /// 0 success  非0 fail
 }ReturnInfo;
 
 
 typedef struct _CallReturnInfo{
     char* resultlist;
     char* error;
-    int   success;
+    int   success;           /// 0 success  非0 fail
 }CallReturnInfo;
 
 typedef struct _MsgReturnInfo{
