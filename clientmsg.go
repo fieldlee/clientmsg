@@ -44,9 +44,8 @@ func SetAnswerBack(f C.ptfFuncCall) {
 
 type MsgHandle struct {}
 
-//export GenerateMemory
 func GenerateMemory(n int)unsafe.Pointer{
-	p := C.malloc(C.sizeof_char * C.ulong(n))
+	p := C.malloc(C.sizeof_char *  C.uint(n))
 	return unsafe.Pointer(p)
 }
 
@@ -123,12 +122,12 @@ func Run()  {
 //export Register
 func Register(seq []byte)RInfo{
 	r := RInfo{}
-	r.success = C.int(1)
+	r.success = C.int(0)
 
 	strseq := string(seq)
 	err := call.Register(strseq)
 	if err != nil {
-		r.success = C.int(0)
+		r.success = C.int(1)
 		r.error = C.CString(err.Error())
 	}
 	return r
@@ -138,12 +137,12 @@ func Register(seq []byte)RInfo{
 //export Publish
 func Publish(service []byte)RInfo{
 	r := RInfo{}
-	r.success = C.int(1)
+	r.success = C.int(0)
 
 	strservice := string(service)
 	err := call.Publish(strservice)
 	if err != nil {
-		r.success = C.int(0)
+		r.success = C.int(1)
 		r.error = C.CString(err.Error())
 	}
 	return r
@@ -152,12 +151,12 @@ func Publish(service []byte)RInfo{
 //export Subscribe
 func Subscribe(service[]byte)RInfo{
 	r := RInfo{}
-	r.success = C.int(1)
+	r.success = C.int(0)
 
 	strservice := string(service)
 	err := call.Subscribe(strservice)
 	if err != nil {
-		r.success = C.int(0)
+		r.success = C.int(1)
 		r.error = C.CString(err.Error())
 	}
 	return r
@@ -166,11 +165,11 @@ func Subscribe(service[]byte)RInfo{
 //export Broadcast
 func Broadcast(body,service []byte,info C.BodyInfo)RInfo{
 	r := RInfo{}
-	r.success = C.int(1)
+	r.success = C.int(0)
 
 	infoBody , err := MarshalBody(body,info)
 	if err != nil {
-		r.success = C.int(0)
+		r.success = C.int(1)
 		r.error = C.CString(err.Error())
 		return r
 	}
@@ -179,13 +178,13 @@ func Broadcast(body,service []byte,info C.BodyInfo)RInfo{
 
 	broadResult,err := call.CallBroadcast(infoBody,service_name)
 	if err != nil {
-		r.success = C.int(0)
+		r.success = C.int(1)
 		r.error = C.CString(err.Error())
 		return r
 	}
 
 	if broadResult.M_Err != nil {
-		r.success = C.int(0)
+		r.success = C.int(1)
 		r.error = C.CString(string(broadResult.M_Err ))
 		return r
 	}
@@ -203,7 +202,6 @@ func Broadcast(body,service []byte,info C.BodyInfo)RInfo{
 	return r
 }
 
-//export B
 func B()RInfo{
 	broadResult := &pb.NetRspInfo{
 		M_Err:nil,
@@ -243,45 +241,63 @@ func B()RInfo{
 }
 
 //export Sync
-func Sync(body []byte,info C.BodyInfo)[]byte{
+func Sync(body []byte,info C.BodyInfo)RInfo{
+	r := RInfo{}
+	r.success = C.int(0)
+
 	infoBody , err := MarshalBody(body,info)
 	if err != nil {
-		fmt.Println(err.Error())
-		return nil
+		r.success = C.int(1)
+		r.error = C.CString(err.Error())
+		return r
 	}
 	//调用C函数
 	syncResult,err := call.CallSync(infoBody)
 	if err != nil {
-		fmt.Println("C++ call Sync err:",err.Error())
-		return nil
+		r.success = C.int(1)
+		r.error = C.CString(err.Error())
+		return r
 	}
 	syncInfo,err := proto.Marshal(syncResult)
 	if err != nil {
-		fmt.Println("C++ call Sync Proto Marshal err:",err.Error())
-		return nil
+		r.success = C.int(1)
+		r.error = C.CString(err.Error())
+		return r
 	}
-	return syncInfo
+
+	r.resultlist = (*C.char)(unsafe.Pointer(&syncInfo[0]))
+
+	return r
 }
 
 //export Async
-func Async(body []byte,info C.BodyInfo)[]byte{
+func Async(body []byte,info C.BodyInfo)RInfo{
+	r := RInfo{}
+	r.success = C.int(0)
+
 	infoBody , err := MarshalBody(body,info)
 	if err != nil {
-		fmt.Println(err.Error())
-		return nil
+		r.success = C.int(1)
+		r.error = C.CString(err.Error())
+		return r
 	}
 	//调用C函数
 	asyncResult,err := call.CallAsync(infoBody)
 	if err != nil {
-		fmt.Println("C++ call Async err:",err.Error())
-		return nil
+		r.success = C.int(1)
+		r.error = C.CString(err.Error())
+		return r
 	}
+
 	asyncInfo,err := proto.Marshal(asyncResult)
 	if err != nil {
-		fmt.Println("C++ call Async Proto Marshal err:",err.Error())
-		return nil
+		r.success = C.int(1)
+		r.error = C.CString(err.Error())
+		return r
 	}
-	return asyncInfo
+
+	r.resultlist = (*C.char)(unsafe.Pointer(&asyncInfo[0]))
+	return r
 }
 
 func main(){

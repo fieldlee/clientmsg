@@ -3,13 +3,14 @@
 #ifndef POINT_HXX
 #define POINT_HXX
 
+//// 同步异步回调函数返回结构
 typedef struct _ReturnInfo{
     char* content;
     int   length;
     int   success;         /// 0 success  非0 fail
 }ReturnInfo;
 
-
+///// 同步，消息，注册，广播等调用返回结构
 typedef struct _CallReturnInfo{
     char* resultlist;
     char* error;
