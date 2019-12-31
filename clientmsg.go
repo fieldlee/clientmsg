@@ -229,8 +229,8 @@ func B()RInfo{
 	return r
 }
 
-//export Sync
-func Sync(body []byte,info C.BodyInfo)RInfo{
+//export Send
+func Send(body []byte,info C.BodyInfo)RInfo{
 	r := RInfo{}
 	r.success = C.int(0)
 
@@ -265,8 +265,8 @@ func Sync(body []byte,info C.BodyInfo)RInfo{
 	return r
 }
 
-//export Async
-func Async(body []byte,info C.BodyInfo)RInfo{
+//export AsyncSend
+func AsyncSend(body []byte,info C.BodyInfo)RInfo{
 	r := RInfo{}
 	r.success = C.int(0)
 
