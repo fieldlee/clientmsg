@@ -1,13 +1,12 @@
 #include "bridge.h"
 
-ReturnInfo CHandleData(ptfFuncCallBack pf,const char* data,int len){
-    return pf(data,len);
+ReturnInfo CHandleData(ptfFuncCallBack pf,const char* data,int len,char* uid,int uidlen){
+    return pf(data,len,uid,uidlen);
 }
 
 int CHandleCall(ptfFuncCall pf,const char* data,int len){
     return pf(data,len);
 }
-
 
 BodyInfo InitializeBody(){
 

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #ifndef POINT_HXX
+
 #define POINT_HXX
 
 //// 同步异步回调函数返回结构
@@ -41,9 +42,11 @@ typedef struct _BodyInfo {
 }BodyInfo;
 
 extern BodyInfo InitializeBody(); // 初始化BodyInfo
+////////////////////////////////////////////////data 发送的数据   len data的长度
 
-typedef ReturnInfo (*ptfFuncCallBack)(const char* data,int len);
+typedef ReturnInfo (*ptfFuncCallBack)(const char* data,int len, char* uid,int uidlen);
 typedef int (*ptfFuncCall)(const char* data,int len);
-extern ReturnInfo CHandleData(ptfFuncCallBack pf,const char* data,int len);
+extern ReturnInfo CHandleData(ptfFuncCallBack pf,const char* data,int len,char* uid,int uidlen);
 extern int CHandleCall(ptfFuncCall pf,const char* data,int len);
+
 #endif

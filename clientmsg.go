@@ -44,21 +44,14 @@ func SetAnswerBack(f C.ptfFuncCall) {
 
 type MsgHandle struct {}
 
-func GenerateMemory(n int)unsafe.Pointer{
-	p := C.malloc(C.sizeof_char *  C.uint(n))
-	return unsafe.Pointer(p)
-}
-
 func (m *MsgHandle)Call(ctx context.Context, info *pb.CallReqInfo) (*pb.CallRspInfo, error) {
 	out := pb.CallRspInfo{}
 	////remove uuid
-	info.Uuid = ""
-	////获取msg head
-
+	uid := []byte("")
 	////获取msg body
 	rq := info.M_Body.M_Msg
 	/////调用C函数
-	p := C.CHandleData(callSyncBack, (*C.char)(unsafe.Pointer(&rq[0])), C.int(len(rq)))
+	p := C.CHandleData(callSyncBack, (*C.char)(unsafe.Pointer(&rq[0])), C.int(len(rq)),(*C.char)(unsafe.Pointer(&uid[0])),C.int(0))
 	defer C.free(unsafe.Pointer(p.content))
 	resultByte := C.GoBytes(unsafe.Pointer(p.content), p.length)
 	out.M_Net_Rsp = resultByte
@@ -67,19 +60,18 @@ func (m *MsgHandle)Call(ctx context.Context, info *pb.CallReqInfo) (*pb.CallRspI
 
 func (m *MsgHandle)AsyncCall(ctx context.Context, resultInfo *pb.CallReqInfo) (*pb.CallRspInfo, error) {
 	out := pb.CallRspInfo{}
-
 	if resultInfo.Uuid == ""{
 		return &out,errors.New("the Async Uuid is empty")
 	}
 	/// remove Service info
 	resultInfo.Service = ""
 	//resultInfo.Uuid
-	////获取msg head
-
+	//// uuid bytes
+	uid := []byte(resultInfo.Uuid)
 	////获取msg body
 	rq := resultInfo.M_Body.M_Msg
 	/////调用C函数
-	p := C.CHandleData(callAsyncBack, (*C.char)(unsafe.Pointer(&rq[0])), C.int(len(rq)))
+	p := C.CHandleData(callAsyncBack, (*C.char)(unsafe.Pointer(&rq[0])), C.int(len(rq)),(*C.char)(unsafe.Pointer(&uid[0])),C.int(len(uid)))
 	defer C.free(unsafe.Pointer(p.content))
 	resultByte := C.GoBytes(unsafe.Pointer(p.content), p.length)
 	out.M_Net_Rsp = resultByte
@@ -90,16 +82,13 @@ func (m *MsgHandle)AsyncAnswer(ctx context.Context, resultInfo *pb.CallReqInfo) 
 	out := pb.CallRspInfo{}
 	resultInfo.Uuid = ""
 	resultInfo.Service = ""
-
 	////获取msg body
 	rq := resultInfo.M_Body.M_Msg
 	/////调用C函数
 	result := C.CHandleCall(callAnswerBack, (*C.char)(unsafe.Pointer(&rq[0])), C.int(len(rq)))
-
 	if result == 0 {
 		return &out,errors.New("call c function error")
 	}
-
 	return &out,nil
 }
 
@@ -305,3 +294,4 @@ func main(){
 }
 
 
+//env GOOS=windows GOARCH=386 CGO_ENABLED=1 CC=i686-w64-mingw32-gcc go build -buildmode=c-shared -o clientmsg.dll
