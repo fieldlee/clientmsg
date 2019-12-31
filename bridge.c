@@ -9,7 +9,6 @@ int CHandleCall(ptfFuncCall pf,const char* data,int len){
 }
 
 BodyInfo InitializeBody(){
-
     BodyInfo structInitialized;
     structInitialized.ServerSequence = 0;
     structInitialized.AskSequence = 0;
@@ -23,5 +22,7 @@ BodyInfo InitializeBody(){
     structInitialized.Discard  = 0;
     structInitialized.Encrypt  = 0;
     structInitialized.Compress = 0;
+    structInitialized.UUID     = '';
+    structInitialized.LenID    = 0;
     return(structInitialized);
 };

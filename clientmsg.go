@@ -234,14 +234,20 @@ func Sync(body []byte,info C.BodyInfo)RInfo{
 	r := RInfo{}
 	r.success = C.int(0)
 
+	uuid := ""
+	if int32(info.LenID) > 0 {
+		uuid = string(C.GoBytes(unsafe.Pointer(info.UUID), info.LenID))
+	}
+
 	infoBody , err := MarshalBody(body,info)
 	if err != nil {
 		r.success = C.int(1)
 		r.error = C.CString(err.Error())
 		return r
 	}
+
 	//调用C函数
-	syncResult,err := call.CallSync(infoBody)
+	syncResult,err := call.CallSync(infoBody,uuid)
 	if err != nil {
 		r.success = C.int(1)
 		r.error = C.CString(err.Error())
