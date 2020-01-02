@@ -89,9 +89,9 @@ extern CallReturnInfo Subscribe(GoSlice p0);
 
 extern CallReturnInfo Broadcast(GoSlice p0, GoSlice p1, BodyInfo p2);
 
-extern CallReturnInfo Sync(GoSlice p0, BodyInfo p1);
+extern CallReturnInfo Send(GoSlice p0, BodyInfo p1);
 
-extern CallReturnInfo Async(GoSlice p0, BodyInfo p1);
+extern CallReturnInfo AsyncSend(GoSlice p0, BodyInfo p1);
 
 #ifdef __cplusplus
 }
