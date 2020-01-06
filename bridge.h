@@ -44,8 +44,8 @@ typedef struct _BodyInfo {
 }BodyInfo;
 
 extern BodyInfo InitializeBody(); // 初始化BodyInfo
-////////////////////////////////////////////////data 发送的数据   len data的长度
 
+//////////////////////////////////// data 发送的数据   len data的长度  uid数据  uidlen uid的长度
 typedef ReturnInfo (*ptfFuncCallBack)(const char* data,int len, char* uid,int uidlen);
 typedef int (*ptfFuncCall)(const char* data,int len);
 extern ReturnInfo CHandleData(ptfFuncCallBack pf,const char* data,int len,char* uid,int uidlen);

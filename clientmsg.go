@@ -116,6 +116,7 @@ func Run()  {
 		log.Fatalln("failed serve at: " + Host + ":" + Port)
 	}
 }
+
 func waitForShutdown(srv *grpc.Server) {
 	interruptChan := make(chan os.Signal, 1)
 	signal.Notify(interruptChan, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
@@ -132,7 +133,6 @@ func waitForShutdown(srv *grpc.Server) {
 func Register(seq []byte)RInfo{
 	r := RInfo{}
 	r.success = C.int(0)
-
 	strseq := string(seq)
 	err := call.Register(strseq)
 	if err != nil {
@@ -147,7 +147,6 @@ func Register(seq []byte)RInfo{
 func Publish(service []byte)RInfo{
 	r := RInfo{}
 	r.success = C.int(0)
-
 	strservice := string(service)
 	err := call.Publish(strservice)
 	if err != nil {
@@ -161,7 +160,6 @@ func Publish(service []byte)RInfo{
 func Subscribe(service[]byte)RInfo{
 	r := RInfo{}
 	r.success = C.int(0)
-
 	strservice := string(service)
 	err := call.Subscribe(strservice)
 	if err != nil {
@@ -184,20 +182,17 @@ func Broadcast(body,service []byte,info C.BodyInfo)RInfo{
 	}
 	//调用C函数
 	service_name := string(service)
-
 	broadResult,err := call.CallBroadcast(infoBody,service_name)
 	if err != nil {
 		r.success = C.int(1)
 		r.error = C.CString(err.Error())
 		return r
 	}
-
 	if broadResult.M_Err != nil {
 		r.success = C.int(1)
 		r.error = C.CString(string(broadResult.M_Err ))
 		return r
 	}
-
 	list := make([]MsgInfo,0)
 	for _ ,v := range broadResult.M_Net_Rsp{
 		m := MsgInfo{}
@@ -206,7 +201,6 @@ func Broadcast(body,service []byte,info C.BodyInfo)RInfo{
 		m.result	= (*C.char)(unsafe.Pointer(&v.Result[0]))
 		list = append(list,m)
 	}
-
 	r.resultlist = (*C.char)(unsafe.Pointer(&list[0]))
 	return r
 }

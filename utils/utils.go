@@ -15,7 +15,6 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io"
-	"reflect"
 )
 
 func JoinHeadAndBody(info model.HeadInfo,in []byte)[]byte{
@@ -211,19 +210,17 @@ func BytesToPublicKey(pub []byte) *rsa.PublicKey {
 	b := block.Bytes
 	var err error
 	if enc {
-		fmt.Println("is encrypted pem block")
 		b, err = x509.DecryptPEMBlock(block, nil)
 		if err != nil {
 			fmt.Println(err.Error())
 		}
 	}
-	fmt.Println(pub)
-	fmt.Println(b)
+
 	ifc, err := x509.ParsePKIXPublicKey(b)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
-	fmt.Println(reflect.TypeOf(ifc))
+
 	key, ok := ifc.(*rsa.PublicKey)
 	if !ok {
 		fmt.Println("not ok")
@@ -249,7 +246,7 @@ func BytesToPrivateKey(priv []byte) *rsa.PrivateKey {
 	b := block.Bytes
 	var err error
 	if enc {
-		fmt.Println("is encrypted pem block")
+
 		b, err = x509.DecryptPEMBlock(block, nil)
 		if err != nil {
 			fmt.Println(err.Error())
