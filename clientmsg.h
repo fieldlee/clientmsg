@@ -73,9 +73,9 @@ extern "C" {
 #endif
 
 
-extern void SetSyncReturnBack(ptfFuncCallBack p0);
+extern void SetSyncReturnBack(ptfSyncCallBack p0);
 
-extern void SetAsyncReturnBack(ptfFuncCallBack p0);
+extern void SetAsyncReturnBack(ptfAsyncCallBack p0);
 
 extern void SetAnswerBack(ptfFuncCall p0);
 

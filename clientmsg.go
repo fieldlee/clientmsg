@@ -24,20 +24,20 @@ var (
 	Host = utils.Address
 	Port = fmt.Sprintf("%d",utils.Port)
 )
-var callSyncBack      C.ptfFuncCallBack
-var callAsyncBack     C.ptfFuncCallBack
+var callSyncBack      C.ptfSyncCallBack
+var callAsyncBack     C.ptfAsyncCallBack
 var callAnswerBack    C.ptfFuncCall
 
 type RInfo C.CallReturnInfo
 type MsgInfo C.MsgReturnInfo
 
 //export SetSyncReturnBack
-func SetSyncReturnBack(f C.ptfFuncCallBack) {
+func SetSyncReturnBack(f C.ptfSyncCallBack) {
 	callSyncBack = f
 }
 
 //export SetAsyncReturnBack
-func SetAsyncReturnBack(f C.ptfFuncCallBack) {
+func SetAsyncReturnBack(f C.ptfAsyncCallBack) {
 	callAsyncBack = f
 }
 
@@ -50,8 +50,7 @@ type MsgHandle struct {}
 
 func (m *MsgHandle)Call(ctx context.Context, info *pb.CallReqInfo) (*pb.CallRspInfo, error) {
 	out := pb.CallRspInfo{}
-	////remove uuid
-	uid := []byte("")
+
 	////获取msg body
 	rq := info.M_Body.M_Msg
 
@@ -68,8 +67,9 @@ func (m *MsgHandle)Call(ctx context.Context, info *pb.CallReqInfo) (*pb.CallRspI
 
 	ip := []byte(info.Clientip)
 	/////调用C函数
-	p := C.CHandleData(callSyncBack, (*C.char)(unsafe.Pointer(&rq[0])), C.int(len(rq)),(*C.char)(unsafe.Pointer(&uid[0])),C.int(0),C.ulonglong(seqno),(*C.char)(unsafe.Pointer(&ip[0])),C.int(len(ip)))
+	p := C.CSyncHandleData(callSyncBack, (*C.char)(unsafe.Pointer(&rq[0])), C.int(len(rq)),C.ulonglong(seqno),(*C.char)(unsafe.Pointer(&ip[0])),C.int(len(ip)))
 	defer C.free(unsafe.Pointer(p.content))
+
 	resultByte := C.GoBytes(unsafe.Pointer(p.content), p.length)
 	out.M_Net_Rsp = resultByte
 	return &out,nil
@@ -99,8 +99,9 @@ func (m *MsgHandle)AsyncCall(ctx context.Context, resultInfo *pb.CallReqInfo) (*
 
 	rq := resultInfo.M_Body.M_Msg
 	/////调用C函数
-	p := C.CHandleData(callAsyncBack, (*C.char)(unsafe.Pointer(&rq[0])), C.int(len(rq)),(*C.char)(unsafe.Pointer(&uid[0])),C.int(len(uid)),C.ulonglong(seqno),(*C.char)(unsafe.Pointer(&ip[0])),C.int(len(ip)))
+	p := C.CAsyncHandleData(callAsyncBack, (*C.char)(unsafe.Pointer(&rq[0])), C.int(len(rq)),(*C.char)(unsafe.Pointer(&uid[0])),C.int(len(uid)),C.ulonglong(seqno),(*C.char)(unsafe.Pointer(&ip[0])),C.int(len(ip)))
 	defer C.free(unsafe.Pointer(p.content))
+
 	resultByte := C.GoBytes(unsafe.Pointer(p.content), p.length)
 	out.M_Net_Rsp = resultByte
 	return &out,nil
