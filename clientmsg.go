@@ -54,10 +54,18 @@ func (m *MsgHandle)Call(ctx context.Context, info *pb.CallReqInfo) (*pb.CallRspI
 	uid := []byte("")
 	////获取msg body
 	rq := info.M_Body.M_Msg
-	seqno,err  := strconv.ParseInt(info.Service,10,64)
-	if err != nil {
-		return &out,err
+
+	var seqno uint64
+	var err  error
+	if info.Service == "" {
+		seqno = info.M_Body.M_MsgBody.MLServerSequence
+	}else{
+		seqno,err = strconv.ParseUint(info.Service,10,64)
+		if err != nil {
+			return &out,err
+		}
 	}
+
 	ip := []byte(info.Clientip)
 	/////调用C函数
 	p := C.CHandleData(callSyncBack, (*C.char)(unsafe.Pointer(&rq[0])), C.int(len(rq)),(*C.char)(unsafe.Pointer(&uid[0])),C.int(0),C.ulonglong(seqno),(*C.char)(unsafe.Pointer(&ip[0])),C.int(len(ip)))
@@ -76,11 +84,19 @@ func (m *MsgHandle)AsyncCall(ctx context.Context, resultInfo *pb.CallReqInfo) (*
 	//// uuid bytes
 	uid := []byte(resultInfo.Uuid)
 	////获取msg body
-	seqno,err  := strconv.ParseInt(resultInfo.Service,10,64)
-	if err != nil {
-		return &out,err
+	var seqno uint64
+	var err  error
+	if resultInfo.Service == "" {
+		seqno = resultInfo.M_Body.M_MsgBody.MLServerSequence
+	}else{
+		seqno,err = strconv.ParseUint(resultInfo.Service,10,64)
+		if err != nil {
+			return &out,err
+		}
 	}
+
 	ip := []byte(resultInfo.Clientip)
+
 	rq := resultInfo.M_Body.M_Msg
 	/////调用C函数
 	p := C.CHandleData(callAsyncBack, (*C.char)(unsafe.Pointer(&rq[0])), C.int(len(rq)),(*C.char)(unsafe.Pointer(&uid[0])),C.int(len(uid)),C.ulonglong(seqno),(*C.char)(unsafe.Pointer(&ip[0])),C.int(len(ip)))
@@ -197,6 +213,7 @@ func Broadcast(body,service []byte,info C.BodyInfo)RInfo{
 		r.error = C.CString(err.Error())
 		return r
 	}
+
 	if broadResult.M_Err != nil {
 		r.success = C.int(1)
 		r.error = C.CString(string(broadResult.M_Err ))
