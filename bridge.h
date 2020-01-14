@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #ifndef POINT_HXX
 
@@ -46,9 +47,9 @@ typedef struct _BodyInfo {
 extern BodyInfo InitializeBody(); // 初始化BodyInfo
 
 //////////////////////////////////// data 发送的数据   len data的长度  uid数据  uidlen uid的长度
-typedef ReturnInfo (*ptfFuncCallBack)(const char* data,int len, char* uid,int uidlen);
+typedef ReturnInfo (*ptfFuncCallBack)(const char* data,int len, char* uid,int uidlen,uint64_t service,char* clientip, int iplen);
 typedef int (*ptfFuncCall)(const char* data,int len);
-extern ReturnInfo CHandleData(ptfFuncCallBack pf,const char* data,int len,char* uid,int uidlen);
+extern ReturnInfo CHandleData(ptfFuncCallBack pf,const char* data,int len, char* uid,int uidlen,uint64_t service,char* clientip, int iplen);
 extern int CHandleCall(ptfFuncCall pf,const char* data,int len);
 
 #endif

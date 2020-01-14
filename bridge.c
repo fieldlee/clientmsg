@@ -1,7 +1,7 @@
 #include "bridge.h"
 
-ReturnInfo CHandleData(ptfFuncCallBack pf,const char* data,int len,char* uid,int uidlen){
-    return pf(data,len,uid,uidlen);
+ReturnInfo CHandleData(ptfFuncCallBack pf,const char* data,int len, char* uid,int uidlen,uint64_t service,char* clientip, int iplen){
+    return pf(data,len,uid,uidlen,service,clientip,iplen);
 }
 
 int CHandleCall(ptfFuncCall pf,const char* data,int len){

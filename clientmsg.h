@@ -72,25 +72,25 @@ typedef struct { void *data; GoInt len; GoInt cap; } GoSlice;
 extern "C" {
 #endif
 
-/// 设置同步方法调用接口
+
 extern void SetSyncReturnBack(ptfFuncCallBack p0);
-/// 设置异步方法调用接口
+
 extern void SetAsyncReturnBack(ptfFuncCallBack p0);
-/// 设置异步回调接口
+
 extern void SetAnswerBack(ptfFuncCall p0);
-/// 启动监听gprc服务
+
 extern void Run();
-/// 注册本服务提供的功能号
+
 extern CallReturnInfo Register(GoSlice p0);
-/// 发布服务id
+
 extern CallReturnInfo Publish(GoSlice p0);
-/// 订阅服务id
+
 extern CallReturnInfo Subscribe(GoSlice p0);
-/// 根据服务id广播消息
+
 extern CallReturnInfo Broadcast(GoSlice p0, GoSlice p1, BodyInfo p2);
-/// 根据功能号，发起同步请求
+
 extern CallReturnInfo Send(GoSlice p0, BodyInfo p1);
-/// 根据功能号，发起异步请求
+
 extern CallReturnInfo AsyncSend(GoSlice p0, BodyInfo p1);
 
 #ifdef __cplusplus
