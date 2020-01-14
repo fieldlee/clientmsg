@@ -159,7 +159,14 @@ func Register(seq []byte)RInfo{
 	r := RInfo{}
 	r.success = C.int(0)
 	strseq := string(seq)
-	err := call.Register(strseq)
+	serno,err := strconv.ParseUint(strseq,10,64)
+	if err != nil {
+		r.success = C.int(1)
+		r.error = C.CString(err.Error())
+		return r
+	}
+
+	err = call.Register(strconv.FormatUint(serno,10))
 	if err != nil {
 		r.success = C.int(1)
 		r.error = C.CString(err.Error())
@@ -173,7 +180,15 @@ func Publish(service []byte)RInfo{
 	r := RInfo{}
 	r.success = C.int(0)
 	strservice := string(service)
-	err := call.Publish(strservice)
+
+	serno,err := strconv.ParseUint(strservice,10,64)
+	if err != nil {
+		r.success = C.int(1)
+		r.error = C.CString(err.Error())
+		return r
+	}
+
+	err = call.Publish(strconv.FormatUint(serno,10))
 	if err != nil {
 		r.success = C.int(1)
 		r.error = C.CString(err.Error())
@@ -186,7 +201,15 @@ func Subscribe(service[]byte)RInfo{
 	r := RInfo{}
 	r.success = C.int(0)
 	strservice := string(service)
-	err := call.Subscribe(strservice)
+
+	serno,err := strconv.ParseUint(strservice,10,64)
+	if err != nil {
+		r.success = C.int(1)
+		r.error = C.CString(err.Error())
+		return r
+	}
+
+	err = call.Subscribe(strconv.FormatUint(serno,10))
 	if err != nil {
 		r.success = C.int(1)
 		r.error = C.CString(err.Error())
@@ -207,7 +230,15 @@ func Broadcast(body,service []byte,info C.BodyInfo)RInfo{
 	}
 	//调用C函数
 	service_name := string(service)
-	broadResult,err := call.CallBroadcast(infoBody,service_name)
+
+	serno,err := strconv.ParseUint(service_name,10,64)
+	if err != nil {
+		r.success = C.int(1)
+		r.error = C.CString(err.Error())
+		return r
+	}
+
+	broadResult,err := call.CallBroadcast(infoBody,strconv.FormatUint(serno,10))
 	if err != nil {
 		r.success = C.int(1)
 		r.error = C.CString(err.Error())
