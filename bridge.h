@@ -50,7 +50,7 @@ typedef struct _BodyInfo {
 
 extern BodyInfo InitializeBody(); // 初始化BodyInfo
 
-//////////////////////////////////// data 发送的数据   len data的长度  uid数据  uidlen uid的长度
+//////////////////////////////////// data 发送的数据  service 功能号   ip 客户端ip  uid 异步请求唯一id
 typedef ReturnInfo (*ptfSyncCallBack)( CStr data,  uint64_t service, CStr ip);
 typedef ReturnInfo (*ptfAsyncCallBack)( CStr data,  CStr uid,  uint64_t service, CStr ip);
 typedef int (*ptfFuncCall)( CStr data);
