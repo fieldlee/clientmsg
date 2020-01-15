@@ -1,14 +1,14 @@
 #include "bridge.h"
 
-ReturnInfo CSyncHandleData(ptfSyncCallBack pf,const CStr data, const uint64_t service,const CStr ip){
+ReturnInfo CSyncHandleData(ptfSyncCallBack pf, CStr data,  uint64_t service, CStr ip){
     return pf(data,service,ip);
 }
 
-ReturnInfo CAsyncHandleData(ptfAsyncCallBack pf,const CStr data, const CStr uid, const uint64_t service,const CStr ip){
+ReturnInfo CAsyncHandleData(ptfAsyncCallBack pf, CStr data,  CStr uid,  uint64_t service, CStr ip){
     return pf(data,uid,service,ip);
 }
 
-int CHandleCall(ptfFuncCall pf,const CStr data){
+int CHandleCall(ptfFuncCall pf, CStr data){
     return pf(data);
 }
 

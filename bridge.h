@@ -51,12 +51,12 @@ typedef struct _BodyInfo {
 extern BodyInfo InitializeBody(); // 初始化BodyInfo
 
 //////////////////////////////////// data 发送的数据   len data的长度  uid数据  uidlen uid的长度
-typedef ReturnInfo (*ptfSyncCallBack)(const CStr data, const uint64_t service,const CStr ip);
-typedef ReturnInfo (*ptfAsyncCallBack)(const CStr data, const CStr uid, const uint64_t service,const CStr ip);
-typedef int (*ptfFuncCall)(const CStr data);
+typedef ReturnInfo (*ptfSyncCallBack)( CStr data,  uint64_t service, CStr ip);
+typedef ReturnInfo (*ptfAsyncCallBack)( CStr data,  CStr uid,  uint64_t service, CStr ip);
+typedef int (*ptfFuncCall)( CStr data);
 
-extern ReturnInfo CSyncHandleData(ptfSyncCallBack pf,const CStr data, const uint64_t service,const CStr ip);
-extern ReturnInfo CAsyncHandleData(ptfAsyncCallBack pf,const CStr data, const CStr uid, const uint64_t service,const CStr ip);
-extern int CHandleCall(ptfFuncCall pf,const CStr data);
+extern ReturnInfo CSyncHandleData(ptfSyncCallBack pf, CStr data,  uint64_t service, CStr ip);
+extern ReturnInfo CAsyncHandleData(ptfAsyncCallBack pf, CStr data,  CStr uid,  uint64_t service, CStr ip);
+extern int CHandleCall(ptfFuncCall pf, CStr data);
 
 #endif
