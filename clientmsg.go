@@ -30,7 +30,7 @@ var callAnswerBack    C.ptfFuncCall
 
 type RInfo C.CallReturnInfo
 type MsgInfo C.MsgReturnInfo
-type StrInfo C.CString
+type SInfo C.CStr
 
 //export SetSyncReturnBack
 func SetSyncReturnBack(f C.ptfSyncCallBack) {
@@ -68,12 +68,12 @@ func (m *MsgHandle)Call(ctx context.Context, info *pb.CallReqInfo) (*pb.CallRspI
 
 	ip_byte := []byte(info.Clientip)
 	///同步请求数据
-	data := StrInfo{
+	data := SInfo{
 		content:(*C.char)(unsafe.Pointer(&rq[0])),
 		length:C.int(len(rq)),
 	}
 	///客户端ip
-	ip := StrInfo{
+	ip := SInfo{
 		content:(*C.char)(unsafe.Pointer(&ip_byte[0])),
 		length:C.int(len(ip_byte)),
 	}
@@ -111,17 +111,17 @@ func (m *MsgHandle)AsyncCall(ctx context.Context, resultInfo *pb.CallReqInfo) (*
 
 	rq := resultInfo.M_Body.M_Msg
 	////异步传送数据
-	data := StrInfo{
+	data := SInfo{
 		content:(*C.char)(unsafe.Pointer(&rq[0])),
 		length:C.int(len(rq)),
 	}
 	////客户端ip
-	ip := StrInfo{
+	ip := SInfo{
 		content:(*C.char)(unsafe.Pointer(&ip_byte[0])),
 		length:C.int(len(ip_byte)),
 	}
 	///异步请求uid
-	uid := StrInfo{
+	uid := SInfo{
 		content:(*C.char)(unsafe.Pointer(&uid_byte[0])),
 		length:C.int(len(uid_byte)),
 	}
@@ -142,7 +142,7 @@ func (m *MsgHandle)AsyncAnswer(ctx context.Context, resultInfo *pb.CallReqInfo) 
 	////获取msg body
 	rq := resultInfo.M_Body.M_Msg
 	////回调数据
-	data := StrInfo{
+	data := SInfo{
 		content:(*C.char)(unsafe.Pointer(&rq[0])),
 		length:C.int(len(rq)),
 	}

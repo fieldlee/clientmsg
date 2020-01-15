@@ -25,10 +25,10 @@ typedef struct _MsgReturnInfo{
     char* result;
 }MsgReturnInfo;
 
-typedef struct _CString{
+typedef struct _CStr{
     char* content;
     int   length;
-}CString
+}CStr;
 
 typedef struct _BodyInfo {
      long unsigned int  Asktype;         //请求的服务类型
@@ -51,12 +51,12 @@ typedef struct _BodyInfo {
 extern BodyInfo InitializeBody(); // 初始化BodyInfo
 
 //////////////////////////////////// data 发送的数据   len data的长度  uid数据  uidlen uid的长度
-typedef ReturnInfo (*ptfSyncCallBack)(const CString data, const uint64_t service,const CString ip);
-typedef ReturnInfo (*ptfAsyncCallBack)(const CString data, const CString uid, const uint64_t service,const CString ip);
-typedef int (*ptfFuncCall)(const CString data);
+typedef ReturnInfo (*ptfSyncCallBack)(const CStr data, const uint64_t service,const CStr ip);
+typedef ReturnInfo (*ptfAsyncCallBack)(const CStr data, const CStr uid, const uint64_t service,const CStr ip);
+typedef int (*ptfFuncCall)(const CStr data);
 
-extern ReturnInfo CSyncHandleData(ptfSyncCallBack pf,const CString data, const uint64_t service,const CString ip);
-extern ReturnInfo CAsyncHandleData(ptfAsyncCallBack pf,const CString data, const CString uid, const uint64_t service,const CString ip);
-extern int CHandleCall(ptfFuncCall pf,const CString data);
+extern ReturnInfo CSyncHandleData(ptfSyncCallBack pf,const CStr data, const uint64_t service,const CStr ip);
+extern ReturnInfo CAsyncHandleData(ptfAsyncCallBack pf,const CStr data, const CStr uid, const uint64_t service,const CStr ip);
+extern int CHandleCall(ptfFuncCall pf,const CStr data);
 
 #endif
