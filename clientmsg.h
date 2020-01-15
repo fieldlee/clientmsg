@@ -81,17 +81,17 @@ extern void SetAnswerBack(ptfFuncCall p0);
 
 extern void Run();
 
-extern CallReturnInfo Register(GoSlice p0);
+extern CallReturnInfo Register(GoSlice p0); // 注册功能 （功能号）
 
-extern CallReturnInfo Publish(GoSlice p0);
+extern CallReturnInfo Publish(GoSlice p0);  // 发布服务 （服务号-必须整数型）
 
-extern CallReturnInfo Subscribe(GoSlice p0);
+extern CallReturnInfo Subscribe(GoSlice p0);  // 订阅服务 （服务号-必须整数型）
 
-extern CallReturnInfo Broadcast(GoSlice p0, GoSlice p1, BodyInfo p2);
+extern CallReturnInfo Broadcast(GoSlice p0, GoSlice p1, BodyInfo p2);  // 广播 （消息，服务号-必须整数型，structinfo）
 
-extern CallReturnInfo Send(GoSlice p0, BodyInfo p1);
+extern CallReturnInfo Send(GoSlice p0, BodyInfo p1);  // 同步（消息，structinfo）
 
-extern CallReturnInfo AsyncSend(GoSlice p0, BodyInfo p1);
+extern CallReturnInfo AsyncSend(GoSlice p0, BodyInfo p1); // 异步（消息，structinfo）
 
 #ifdef __cplusplus
 }

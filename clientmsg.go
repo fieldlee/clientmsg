@@ -30,6 +30,7 @@ var callAnswerBack    C.ptfFuncCall
 
 type RInfo C.CallReturnInfo
 type MsgInfo C.MsgReturnInfo
+type StrInfo C.CString
 
 //export SetSyncReturnBack
 func SetSyncReturnBack(f C.ptfSyncCallBack) {
@@ -65,13 +66,24 @@ func (m *MsgHandle)Call(ctx context.Context, info *pb.CallReqInfo) (*pb.CallRspI
 		}
 	}
 
-	ip := []byte(info.Clientip)
+	ip_byte := []byte(info.Clientip)
+	///同步请求数据
+	data := StrInfo{
+		content:(*C.char)(unsafe.Pointer(&rq[0])),
+		length:C.int(len(rq)),
+	}
+	///客户端ip
+	ip := StrInfo{
+		content:(*C.char)(unsafe.Pointer(&ip_byte[0])),
+		length:C.int(len(ip_byte)),
+	}
 	/////调用C函数
-	p := C.CSyncHandleData(callSyncBack, (*C.char)(unsafe.Pointer(&rq[0])), C.int(len(rq)),C.ulonglong(seqno),(*C.char)(unsafe.Pointer(&ip[0])),C.int(len(ip)))
+	p := C.CSyncHandleData(callSyncBack,data,C.ulonglong(seqno),ip)
 	defer C.free(unsafe.Pointer(p.content))
 
 	resultByte := C.GoBytes(unsafe.Pointer(p.content), p.length)
 	out.M_Net_Rsp = resultByte
+
 	return &out,nil
 }
 
@@ -82,7 +94,7 @@ func (m *MsgHandle)AsyncCall(ctx context.Context, resultInfo *pb.CallReqInfo) (*
 	}
 	//resultInfo.Uuid
 	//// uuid bytes
-	uid := []byte(resultInfo.Uuid)
+	uid_byte := []byte(resultInfo.Uuid)
 	////获取msg body
 	var seqno uint64
 	var err  error
@@ -95,15 +107,31 @@ func (m *MsgHandle)AsyncCall(ctx context.Context, resultInfo *pb.CallReqInfo) (*
 		}
 	}
 
-	ip := []byte(resultInfo.Clientip)
+	ip_byte := []byte(resultInfo.Clientip)
 
 	rq := resultInfo.M_Body.M_Msg
+	////异步传送数据
+	data := StrInfo{
+		content:(*C.char)(unsafe.Pointer(&rq[0])),
+		length:C.int(len(rq)),
+	}
+	////客户端ip
+	ip := StrInfo{
+		content:(*C.char)(unsafe.Pointer(&ip_byte[0])),
+		length:C.int(len(ip_byte)),
+	}
+	///异步请求uid
+	uid := StrInfo{
+		content:(*C.char)(unsafe.Pointer(&uid_byte[0])),
+		length:C.int(len(uid_byte)),
+	}
 	/////调用C函数
-	p := C.CAsyncHandleData(callAsyncBack, (*C.char)(unsafe.Pointer(&rq[0])), C.int(len(rq)),(*C.char)(unsafe.Pointer(&uid[0])),C.int(len(uid)),C.ulonglong(seqno),(*C.char)(unsafe.Pointer(&ip[0])),C.int(len(ip)))
+	p := C.CAsyncHandleData(callAsyncBack,data,uid,C.ulonglong(seqno),ip)
 	defer C.free(unsafe.Pointer(p.content))
 
 	resultByte := C.GoBytes(unsafe.Pointer(p.content), p.length)
 	out.M_Net_Rsp = resultByte
+
 	return &out,nil
 }
 
@@ -113,8 +141,13 @@ func (m *MsgHandle)AsyncAnswer(ctx context.Context, resultInfo *pb.CallReqInfo) 
 	resultInfo.Service = ""
 	////获取msg body
 	rq := resultInfo.M_Body.M_Msg
+	////回调数据
+	data := StrInfo{
+		content:(*C.char)(unsafe.Pointer(&rq[0])),
+		length:C.int(len(rq)),
+	}
 	/////调用C函数
-	result := C.CHandleCall(callAnswerBack, (*C.char)(unsafe.Pointer(&rq[0])), C.int(len(rq)))
+	result := C.CHandleCall(callAnswerBack,data)
 	if result == 0 {
 		return &out,errors.New("call c function error")
 	}
