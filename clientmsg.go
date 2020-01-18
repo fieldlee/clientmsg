@@ -185,6 +185,7 @@ func waitForShutdown(srv *grpc.Server) {
 	// shutdown service
 	os.Exit(0)
 }
+
 //export Register
 func Register(seq []byte)RInfo{
 	r := RInfo{}
@@ -353,8 +354,8 @@ func AsyncSend(body []byte,info C.BodyInfo)RInfo{
 	return r
 }
 
-//export AsyncSencCallback
-func AsyncSencCallback(body []byte,info C.BodyInfo,cb C.ptfFuncCall){
+//export AsyncSendCallback
+func AsyncSendCallback(body []byte,info C.BodyInfo,cb C.ptfFuncCall){
 	uid := uuid.New()
 	infoBody , err := MarshalBody(body,info,true)
 	if err != nil {

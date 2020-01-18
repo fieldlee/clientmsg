@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"reflect"
 	"testing"
 )
 
@@ -88,8 +86,6 @@ func TestB2(t *testing.T) {
 		},
 	}
 	*/
-	r := B()
-	fmt.Println(reflect.TypeOf(r))
-	fmt.Println(r)
+
 }
 
