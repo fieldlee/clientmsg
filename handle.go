@@ -17,19 +17,38 @@ func randInt(min int , max int) uint32 {
 	return uint32(min + rand.Intn(max-min))
 }
 
-func MarshalBody(body []byte,info C.BodyInfo)([]byte,error){
-	net_msgbody := &pb.Net_Pack_Min_Net_MsgBody{
-		MLAsktype:uint64(info.Asktype),
-		MLServerSequence:uint64(info.ServerSequence),
-		MLAskSequence:uint64(info.AskSequence),
-		MCMsgAckType:int32(info.MsgAckType),
-		MCMsgType:int32(info.MsgType),
-		MSSendCount:int32(info.SendCount),
-		MLExpireTime:uint32(info.ExpireTime),
-		MISendTimeApp:uint64(info.SendTimeApp),
-		MLResult:int32(info.Result),
-		MLBack:uint64(info.Back),
-		MIDiscard:int32(info.Discard),
+func MarshalBody(body []byte,info C.BodyInfo,has bool)([]byte,error){
+
+	var net_msgbody *pb.Net_Pack_Min_Net_MsgBody
+
+	if has == false{
+		net_msgbody = &pb.Net_Pack_Min_Net_MsgBody{
+			MLAsktype:uint64(0),
+			MLServerSequence:uint64(0),
+			MLAskSequence:uint64(0),
+			MCMsgAckType:int32(1),
+			MCMsgType:int32(0),
+			MSSendCount:int32(1),
+			MLExpireTime:uint32(0),
+			MISendTimeApp:uint64(0),
+			MLResult:int32(0),
+			MLBack:uint64(0),
+			MIDiscard:int32(0),
+		}
+	}else{
+		net_msgbody = &pb.Net_Pack_Min_Net_MsgBody{
+			MLAsktype:uint64(info.Asktype),
+			MLServerSequence:uint64(info.ServerSequence),
+			MLAskSequence:uint64(info.AskSequence),
+			MCMsgAckType:int32(info.MsgAckType),
+			MCMsgType:int32(info.MsgType),
+			MSSendCount:int32(info.SendCount),
+			MLExpireTime:uint32(info.ExpireTime),
+			MISendTimeApp:uint64(info.SendTimeApp),
+			MLResult:int32(info.Result),
+			MLBack:uint64(info.Back),
+			MIDiscard:int32(info.Discard),
+		}
 	}
 
 	net_pack := &pb.Net_Pack{

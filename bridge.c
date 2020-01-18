@@ -8,8 +8,8 @@ ReturnInfo CAsyncHandleData(ptfAsyncCallBack pf, CStr data,  CStr uid,  uint64_t
     return pf(data,uid,service,ip);
 }
 
-int CHandleCall(ptfFuncCall pf, CStr data){
-    return pf(data);
+int CHandleCall(ptfFuncCall pf, CStr data,int success){
+    return pf(data,success);
 }
 
 BodyInfo InitializeBody(){

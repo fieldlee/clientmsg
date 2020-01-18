@@ -14,16 +14,12 @@ typedef struct _ReturnInfo{
 
 ///// 同步，消息，注册，广播等调用返回结构
 typedef struct _CallReturnInfo{
-    char* resultlist;
+    int length;
+    char* result;
     char* error;
     int   success;           /// 0 success  非0 fail
 }CallReturnInfo;
 
-typedef struct _MsgReturnInfo{
-    int  key;
-    char* error;
-    char* result;
-}MsgReturnInfo;
 
 typedef struct _CStr{
     char* content;
@@ -53,10 +49,10 @@ extern BodyInfo InitializeBody(); // 初始化BodyInfo
 //////////////////////////////////// data 发送的数据  service 功能号   ip 客户端ip  uid 异步请求唯一id
 typedef ReturnInfo (*ptfSyncCallBack)( CStr data,  uint64_t service, CStr ip);
 typedef ReturnInfo (*ptfAsyncCallBack)( CStr data,  CStr uid,  uint64_t service, CStr ip);
-typedef int (*ptfFuncCall)( CStr data);
+typedef int (*ptfFuncCall)( CStr data,int success);
 
 extern ReturnInfo CSyncHandleData(ptfSyncCallBack pf, CStr data,  uint64_t service, CStr ip);
 extern ReturnInfo CAsyncHandleData(ptfAsyncCallBack pf, CStr data,  CStr uid,  uint64_t service, CStr ip);
-extern int CHandleCall(ptfFuncCall pf, CStr data);
+extern int CHandleCall(ptfFuncCall pf, CStr data,int success);
 
 #endif

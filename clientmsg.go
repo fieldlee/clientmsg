@@ -6,9 +6,8 @@ import (
 	pb "clientmsg/proto"
 	"clientmsg/utils"
 	"context"
-	"errors"
 	"fmt"
-	"github.com/gogo/protobuf/proto"
+	"github.com/pborman/uuid"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 	"log"
@@ -24,33 +23,25 @@ var (
 	Host = utils.Address
 	Port = fmt.Sprintf("%d",utils.Port)
 )
-var callSyncBack      C.ptfSyncCallBack
-var callAsyncBack     C.ptfAsyncCallBack
-var callAnswerBack    C.ptfFuncCall
+var callSyncBack    C.ptfSyncCallBack
+var notifyBack   C.ptfFuncCall
 
 type RInfo C.CallReturnInfo
-type MsgInfo C.MsgReturnInfo
 
 //export SetSyncReturnBack
 func SetSyncReturnBack(f C.ptfSyncCallBack) {
 	callSyncBack = f
 }
 
-//export SetAsyncReturnBack
-func SetAsyncReturnBack(f C.ptfAsyncCallBack) {
-	callAsyncBack = f
-}
-
-//export SetAnswerBack
-func SetAnswerBack(f C.ptfFuncCall) {
-	callAnswerBack = f
+//export SetNotifyBack
+func SetNotifyBack(f C.ptfFuncCall) {
+	notifyBack = f
 }
 
 type MsgHandle struct {}
 
 func (m *MsgHandle)Call(ctx context.Context, info *pb.CallReqInfo) (*pb.CallRspInfo, error) {
 	out := pb.CallRspInfo{}
-
 	////获取msg body
 	rq := info.M_Body.M_Msg
 
@@ -76,80 +67,70 @@ func (m *MsgHandle)Call(ctx context.Context, info *pb.CallReqInfo) (*pb.CallRspI
 		content:(*C.char)(unsafe.Pointer(&ip_byte[0])),
 		length:C.int(len(ip_byte)),
 	}
-	/////调用C函数
-	p := C.CSyncHandleData(callSyncBack,data,C.ulonglong(seqno),ip)
-	defer C.free(unsafe.Pointer(p.content))
 
-	resultByte := C.GoBytes(unsafe.Pointer(p.content), p.length)
-	out.M_Net_Rsp = resultByte
+	if info.Uuid == ""{ // 同步请求
+		/////调用C函数
+		p := C.CSyncHandleData(callSyncBack,data,C.ulonglong(seqno),ip)
+		defer C.free(unsafe.Pointer(p.content))
 
-	return &out,nil
-}
+		resultByte := C.GoBytes(unsafe.Pointer(p.content), p.length)
+		out.M_Net_Rsp = resultByte
 
-func (m *MsgHandle)AsyncCall(ctx context.Context, resultInfo *pb.CallReqInfo) (*pb.CallRspInfo, error) {
-	out := pb.CallRspInfo{}
-	if resultInfo.Uuid == ""{
-		return &out,errors.New("the Async Uuid is empty")
+		return &out,nil
+	}else{  // 异步请求
+
+		go func(uid string,data C.CStr,seqno uint64,ip C.CStr) {
+
+			p := C.CSyncHandleData(callSyncBack,data,C.ulonglong(seqno),ip)
+
+			defer C.free(unsafe.Pointer(p.content))
+
+			resultByte := C.GoBytes(unsafe.Pointer(p.content), p.length)
+
+			infoBody , err := MarshalBody(resultByte,C.BodyInfo{},false)
+			if err != nil {
+				fmt.Println(fmt.Sprintf("MarshalBody error : %s",err.Error()))
+				return
+			}
+
+			syncResult,err := call.CallSync(infoBody,uid)
+
+			if err != nil {
+				fmt.Println(fmt.Sprintf("call.CallSync error : %s",err.Error()))
+				return
+			}
+
+			if syncResult.M_Err != nil {
+				fmt.Println(fmt.Sprintf("syncResult error : %s",syncResult.M_Err))
+				return
+			}
+			return
+		}(info.Uuid,data,seqno,ip)
+
+		out.M_Net_Rsp = []byte{0}
+
+		return &out,nil
 	}
-	//resultInfo.Uuid
-	//// uuid bytes
-	uid_byte := []byte(resultInfo.Uuid)
-	////获取msg body
-	var seqno uint64
-	var err  error
-	if resultInfo.Service == "" {
-		seqno = resultInfo.M_Body.M_MsgBody.MLServerSequence
-	}else{
-		seqno,err = strconv.ParseUint(resultInfo.Service,10,64)
-		if err != nil {
-			return &out,err
-		}
-	}
 
-	ip_byte := []byte(resultInfo.Clientip)
-
-	rq := resultInfo.M_Body.M_Msg
-	////异步传送数据
-	data := C.CStr{
-		content:(*C.char)(unsafe.Pointer(&rq[0])),
-		length:C.int(len(rq)),
-	}
-	////客户端ip
-	ip := C.CStr{
-		content:(*C.char)(unsafe.Pointer(&ip_byte[0])),
-		length:C.int(len(ip_byte)),
-	}
-	///异步请求uid
-	uid := C.CStr{
-		content:(*C.char)(unsafe.Pointer(&uid_byte[0])),
-		length:C.int(len(uid_byte)),
-	}
-	/////调用C函数
-	p := C.CAsyncHandleData(callAsyncBack,data,uid,C.ulonglong(seqno),ip)
-	defer C.free(unsafe.Pointer(p.content))
-
-	resultByte := C.GoBytes(unsafe.Pointer(p.content), p.length)
-	out.M_Net_Rsp = resultByte
-
-	return &out,nil
 }
 
 func (m *MsgHandle)AsyncAnswer(ctx context.Context, resultInfo *pb.CallReqInfo) (*pb.CallRspInfo, error) {
 	out := pb.CallRspInfo{}
-	resultInfo.Uuid = ""
-	resultInfo.Service = ""
 	////获取msg body
-	rq := resultInfo.M_Body.M_Msg
-	////回调数据
+	//body := utils.AsyncBody{
+	//	Uid:resultInfo.Uuid,
+	//	Body:resultInfo.M_Body.M_Msg,
+	//}
+
 	data := C.CStr{
-		content:(*C.char)(unsafe.Pointer(&rq[0])),
-		length:C.int(len(rq)),
+		content:(*C.char)(unsafe.Pointer(&resultInfo.M_Body.M_Msg[0])),
+		length:C.int(len(resultInfo.M_Body.M_Msg)),
 	}
-	/////调用C函数
-	result := C.CHandleCall(callAnswerBack,data)
-	if result == 0 {
-		return &out,errors.New("call c function error")
-	}
+
+	result := C.CHandleCall(notifyBack,data,0)
+
+	out.M_Net_Rsp = []byte{result}
+
 	return &out,nil
 }
 
@@ -175,6 +156,23 @@ func Run()  {
 	}
 }
 
+func errTransRinfo(err error)RInfo{
+	errByte := []byte(err.Error())
+	r := RInfo{}
+	r.success = C.int(1)
+	r.error = (*C.char)(unsafe.Pointer(&errByte[0]))
+	r.length = C.int(len(errByte))
+	return r
+}
+
+func errByteTransRinfo(err []byte)RInfo{
+	r := RInfo{}
+	r.success = C.int(1)
+	r.error = (*C.char)(unsafe.Pointer(&err[0]))
+	r.length = C.int(len(err))
+	return r
+}
+
 func waitForShutdown(srv *grpc.Server) {
 	interruptChan := make(chan os.Signal, 1)
 	signal.Notify(interruptChan, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
@@ -194,19 +192,18 @@ func Register(seq []byte)RInfo{
 	strseq := string(seq)
 	serno,err := strconv.ParseUint(strseq,10,64)
 	if err != nil {
-		r.success = C.int(1)
-		r.error = C.CString(err.Error())
-		return r
+		return errTransRinfo(err)
 	}
 
 	err = call.Register(strconv.FormatUint(serno,10))
 	if err != nil {
-		r.success = C.int(1)
-		r.error = C.CString(err.Error())
+		return errTransRinfo(err)
 	}
+	body_byte := []byte("register success")
+	r.result = (*C.char)(unsafe.Pointer(&body_byte[0]))
+	r.length = C.int(len(body_byte))
 	return r
 }
-
 
 //export Publish
 func Publish(service []byte)RInfo{
@@ -216,16 +213,16 @@ func Publish(service []byte)RInfo{
 
 	serno,err := strconv.ParseUint(strservice,10,64)
 	if err != nil {
-		r.success = C.int(1)
-		r.error = C.CString(err.Error())
-		return r
+		return errTransRinfo(err)
 	}
 
 	err = call.Publish(strconv.FormatUint(serno,10))
 	if err != nil {
-		r.success = C.int(1)
-		r.error = C.CString(err.Error())
+		return errTransRinfo(err)
 	}
+	body_byte := []byte("public success")
+	r.result = (*C.char)(unsafe.Pointer(&body_byte[0]))
+	r.length = C.int(len(body_byte))
 	return r
 }
 
@@ -237,16 +234,17 @@ func Subscribe(service[]byte)RInfo{
 
 	serno,err := strconv.ParseUint(strservice,10,64)
 	if err != nil {
-		r.success = C.int(1)
-		r.error = C.CString(err.Error())
-		return r
+		return errTransRinfo(err)
 	}
 
 	err = call.Subscribe(strconv.FormatUint(serno,10))
 	if err != nil {
-		r.success = C.int(1)
-		r.error = C.CString(err.Error())
+		return errTransRinfo(err)
 	}
+
+	body_byte := []byte("subscribe success")
+	r.result = (*C.char)(unsafe.Pointer(&body_byte[0]))
+	r.length = C.int(len(body_byte))
 	return r
 }
 
@@ -255,81 +253,34 @@ func Broadcast(body,service []byte,info C.BodyInfo)RInfo{
 	r := RInfo{}
 	r.success = C.int(0)
 
-	infoBody , err := MarshalBody(body,info)
+	infoBody , err := MarshalBody(body,info,true)
 	if err != nil {
-		r.success = C.int(1)
-		r.error = C.CString(err.Error())
-		return r
+		return errTransRinfo(err)
 	}
 	//调用C函数
 	service_name := string(service)
 
 	serno,err := strconv.ParseUint(service_name,10,64)
 	if err != nil {
-		r.success = C.int(1)
-		r.error = C.CString(err.Error())
-		return r
+		return errTransRinfo(err)
 	}
 
 	broadResult,err := call.CallBroadcast(infoBody,strconv.FormatUint(serno,10))
 	if err != nil {
-		r.success = C.int(1)
-		r.error = C.CString(err.Error())
-		return r
+		return errTransRinfo(err)
 	}
+	if broadResult != nil {
+		if broadResult.M_Err != nil {
+			return errByteTransRinfo(broadResult.M_Err)
+		}
 
-	if broadResult.M_Err != nil {
-		r.success = C.int(1)
-		r.error = C.CString(string(broadResult.M_Err ))
-		return r
+		var body_byte []byte
+		for _ ,v := range broadResult.M_Net_Rsp{
+			body_byte = v.Result
+		}
+		r.result = (*C.char)(unsafe.Pointer(&body_byte[0]))
+		r.length = C.int(len(body_byte))
 	}
-	list := make([]MsgInfo,0)
-	for _ ,v := range broadResult.M_Net_Rsp{
-		m := MsgInfo{}
-		m.key 		= C.int(v.Key)
-		m.error     = C.CString(string(v.CheckErr))
-		m.result	= (*C.char)(unsafe.Pointer(&v.Result[0]))
-		list = append(list,m)
-	}
-	r.resultlist = (*C.char)(unsafe.Pointer(&list[0]))
-	return r
-}
-
-func B()RInfo{
-	broadResult := &pb.NetRspInfo{
-		M_Err:nil,
-		M_Net_Rsp: map[uint32]*pb.SendResultInfo{
-			12:&pb.SendResultInfo{
-				Key:12,
-				CheckErr:nil,
-				Result:[]byte("hello struct"),
-			},
-			13:&pb.SendResultInfo{
-				Key:13,
-				CheckErr:nil,
-				Result:[]byte("hello struct2"),
-			},
-		},
-	}
-	r := RInfo{}
-	r.success = C.int(1)
-	if broadResult.M_Err != nil {
-		r.success = C.int(0)
-		r.error = C.CString(string(broadResult.M_Err ))
-		return r
-	}
-
-	list := make([]MsgInfo,0)
-	for _ ,v := range broadResult.M_Net_Rsp{
-		m := MsgInfo{}
-		m.key = C.int(v.Key)
-		m.error       = C.CString(string(v.CheckErr))
-		m.result = (*C.char)(unsafe.Pointer(&v.Result[0]))
-
-		list = append(list,m)
-	}
-	fmt.Println(list)
-	r.resultlist = (*C.char)(unsafe.Pointer(&list[0]))
 	return r
 }
 
@@ -343,29 +294,29 @@ func Send(body []byte,info C.BodyInfo)RInfo{
 		uuid = string(C.GoBytes(unsafe.Pointer(info.UUID), info.LenID))
 	}
 
-	infoBody , err := MarshalBody(body,info)
+	infoBody , err := MarshalBody(body,info,true)
 	if err != nil {
-		r.success = C.int(1)
-		r.error = C.CString(err.Error())
-		return r
+		return errTransRinfo(err)
 	}
 
 	//调用C函数
 	syncResult,err := call.CallSync(infoBody,uuid)
 	if err != nil {
-		r.success = C.int(1)
-		r.error = C.CString(err.Error())
-		return r
-	}
-	syncInfo,err := proto.Marshal(syncResult)
-	if err != nil {
-		r.success = C.int(1)
-		r.error = C.CString(err.Error())
-		return r
+		return errTransRinfo(err)
 	}
 
-	r.resultlist = (*C.char)(unsafe.Pointer(&syncInfo[0]))
+	if syncResult != nil {
+		if syncResult.M_Err != nil {
+			return errByteTransRinfo(syncResult.M_Err)
+		}
 
+		var body_result []byte
+		for _ , v := range  syncResult.M_Net_Rsp{
+			body_result = v.Result
+		}
+		r.result = (*C.char)(unsafe.Pointer(&body_result[0]))
+		r.length = C.int(len(body_result))
+	}
 	return r
 }
 
@@ -374,34 +325,80 @@ func AsyncSend(body []byte,info C.BodyInfo)RInfo{
 	r := RInfo{}
 	r.success = C.int(0)
 
-	infoBody , err := MarshalBody(body,info)
+	uid := uuid.New()
+
+	infoBody , err := MarshalBody(body,info,true)
 	if err != nil {
-		r.success = C.int(1)
-		r.error = C.CString(err.Error())
-		return r
+		return errTransRinfo(err)
 	}
 	//调用C函数
-	asyncResult,err := call.CallAsync(infoBody)
+	asyncResult,err := call.CallAsync(infoBody,uid)
 	if err != nil {
-		r.success = C.int(1)
-		r.error = C.CString(err.Error())
-		return r
+		return errTransRinfo(err)
 	}
 
-	asyncInfo,err := proto.Marshal(asyncResult)
-	if err != nil {
-		r.success = C.int(1)
-		r.error = C.CString(err.Error())
-		return r
+	if asyncResult != nil {
+		if asyncResult.M_Err != nil {
+			return errByteTransRinfo(asyncResult.M_Err)
+		}
+
+		var body_result []byte
+		for _,v := range asyncResult.M_Net_Rsp{
+			body_result = v.Result
+		}
+		r.result = (*C.char)(unsafe.Pointer(&body_result[0]))
+		r.length = C.int(len(body_result))
 	}
 
-	r.resultlist = (*C.char)(unsafe.Pointer(&asyncInfo[0]))
 	return r
+}
+
+//export AsyncSencCallback
+func AsyncSencCallback(body []byte,info C.BodyInfo,cb C.ptfFuncCall){
+	uid := uuid.New()
+	infoBody , err := MarshalBody(body,info,true)
+	if err != nil {
+		errByte := []byte(err.Error())
+		errdata := C.CStr{
+			content:(*C.char)(unsafe.Pointer(&errByte[0])),
+			length:C.int(len(errByte)),
+		}
+		C.CHandleCall(cb,errdata,1)
+	}
+	//调用C函数
+	asyncResult,err := call.CallAsync(infoBody,uid)
+	if err != nil {
+		errByte := []byte(err.Error())
+		errdata := C.CStr{
+			content:(*C.char)(unsafe.Pointer(&errByte[0])),
+			length:C.int(len(errByte)),
+		}
+		C.CHandleCall(cb,errdata,1)
+	}
+
+	if asyncResult != nil {
+		if asyncResult.M_Err != nil {
+			errdata := C.CStr{
+				content:(*C.char)(unsafe.Pointer(&asyncResult.M_Err[0])),
+				length:C.int(len(asyncResult.M_Err)),
+			}
+			C.CHandleCall(cb,errdata,1)
+		}
+
+		var body_result []byte
+		for _,v := range asyncResult.M_Net_Rsp{
+			body_result = v.Result
+		}
+		resultdata := C.CStr{
+			content:(*C.char)(unsafe.Pointer(&body_result[0])),
+			length:C.int(len(body_result)),
+		}
+		C.CHandleCall(cb,resultdata,0)
+	}
 }
 
 func main(){
 
 }
-
 
 //env GOOS=windows GOARCH=386 CGO_ENABLED=1 CC=i686-w64-mingw32-gcc go build -buildmode=c-shared -o clientmsg.dll
