@@ -26,7 +26,5 @@ BodyInfo InitializeBody(){
     structInitialized.Discard  = 0;
     structInitialized.Encrypt  = 0;
     structInitialized.Compress = 0;
-    structInitialized.UUID     = 0;
-    structInitialized.LenID    = 0;
     return(structInitialized);
 };

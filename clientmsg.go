@@ -129,7 +129,7 @@ func (m *MsgHandle)AsyncAnswer(ctx context.Context, resultInfo *pb.CallReqInfo) 
 
 	result := C.CHandleCall(notifyBack,data,0)
 
-	out.M_Net_Rsp = []byte{result}
+	out.M_Net_Rsp = utils.Int32ToBytes(int32(result))
 
 	return &out,nil
 }
@@ -291,9 +291,6 @@ func Send(body []byte,info C.BodyInfo)RInfo{
 	r.success = C.int(0)
 
 	uuid := ""
-	if int32(info.LenID) > 0 {
-		uuid = string(C.GoBytes(unsafe.Pointer(info.UUID), info.LenID))
-	}
 
 	infoBody , err := MarshalBody(body,info,true)
 	if err != nil {
@@ -356,7 +353,7 @@ func AsyncSend(body []byte,info C.BodyInfo)RInfo{
 
 //export AsyncSendCallback
 func AsyncSendCallback(body []byte,info C.BodyInfo,cb C.ptfFuncCall){
-	uid := uuid.New()
+	uid := ""
 	infoBody , err := MarshalBody(body,info,true)
 	if err != nil {
 		errByte := []byte(err.Error())
@@ -367,7 +364,7 @@ func AsyncSendCallback(body []byte,info C.BodyInfo,cb C.ptfFuncCall){
 		C.CHandleCall(cb,errdata,1)
 	}
 	//调用C函数
-	asyncResult,err := call.CallAsync(infoBody,uid)
+	asyncResult,err := call.CallSync(infoBody,uid)
 	if err != nil {
 		errByte := []byte(err.Error())
 		errdata := C.CStr{

@@ -40,8 +40,6 @@ typedef struct _BodyInfo {
      int                Discard;         //消息是否可以丢弃 0 表示可
      int                Encrypt;         //0 不加密 1 DES 2 AES 3 RSA
      int                Compress;        //0 不压缩 1 压缩
-     char*              UUID;            //异步请求的序列号
-     int                LenID;           //异步请求的序列号的长度
 }BodyInfo;
 
 extern BodyInfo InitializeBody(); // 初始化BodyInfo
